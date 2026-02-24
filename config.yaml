@@ -1,0 +1,257 @@
+jira:
+  project_key: "KPI"
+  story_points_field: "customfield_10106"
+  # Age (days) beyond which unknown statuses are treated as done
+  unknown_status_done_after_days: 21
+  legacy_label_prefixes:
+    - "fonctionnalites:"
+    - "design:"
+    - "technique:"
+    - "env:"
+  status_mapping:
+    backlog: ["Nouveau", "Ouvert", "Open", "New"]
+    specification: ["Rédigée", "Affinage", "A affiner"]
+    todo: ["Prêt", "À faire", "A faire", "To Do", "Prêt pour Dev"]
+    in-progress: ["En cours", "In Progress", "En développement"]
+    review: ["Revue de code", "Code Review", "En revue"]
+    testing: ["Recette", "En recette", "En test", "Test"]
+    blocked: ["Bloqué", "Bloque", "Blocked", "En attente"]
+    abandoned: ["Abandonné", "Cancelled", "Annulé"]
+    done: ["Terminé", "Fermé", "Done", "Closed", "Résolu", "Resolved"]
+    delivered: ["Livré", "Deployed", "En production"]
+
+confluence:
+  space_key: "KPI"
+  parent_page_title: "06_Organisation / Planification"
+
+project:
+  start_date: "2025-10-01"
+  end_date: "2026-09-30"
+  sprint_duration_weeks: 3
+  prorata_current_sprint: true
+  show_current_sprint_stories: true
+  # Optional: override sprint list instead of computing from start/end
+  # sprints:
+  #   - {number: 1, start: "2025-10-01", end: "2025-10-21"}
+
+velocity_unit: "week"
+
+archive:
+  db_path: "data/kpi.json"
+
+domain_weight:
+  fonctionnel: 0.35
+  conception: 0.08
+  developpement: 0.25
+  ops: 0.05
+  devops: 0.03
+  qualite: 0.08
+  performance: 0.02
+  observabilite: 0.02
+  securite: 0.04
+  pilotage: 0.03
+  documentation: 0.03
+  habilitations: 0.02
+
+# ═══════════════════════════════════════════════════════
+# DIMENSIONS — 3 top-levels: fonctionnel / technique / organisationnel
+# label = single lowercase word (dashes ok), used as Jira label
+# ═══════════════════════════════════════════════════════
+dimensions:
+  - label: fonctionnel
+    display: "Fonctionnel"
+    children:
+      - label: referentiels
+        display: "Référentiels"
+        keywords: ["référentiel", "données de référence", "données froides", "paramétrage"]
+        children:
+          - label: structures
+            display: "Structures"
+            keywords: ["référentiel des structures", "paramétrage structures", "structure organisationnelle"]
+          - label: metiers
+            display: "Métiers"
+            keywords: ["référentiel des métiers", "référentiel métier", "nomenclature métier"]
+          - label: fonctions
+            display: "Fonctions"
+            keywords: ["référentiel des fonctions", "catalogue fonctions"]
+      - label: campagnes
+        display: "Campagnes"
+        keywords: ["campagne"]
+        children:
+          - label: initialisation
+            display: "Initialisation"
+            keywords: ["initialisation campagne", "créer une campagne", "ouvrir campagne"]
+          - label: gestion
+            display: "Gestion"
+            keywords: ["gérer campagne", "gestion campagne", "clôture campagne"]
+      - label: enquetes
+        display: "Enquêtes"
+        keywords: ["enquête", "enquete"]
+        children:
+          - label: saisie
+            display: "Saisie"
+            keywords: ["saisir une enquête", "saisie enquête", "formulaire enquête"]
+          - label: ventilation
+            display: "Ventilation ETP"
+            keywords: ["ventilation", "ventilation ETP", "répartition ETP", "ETP", "effectif"]
+          - label: validation-enquete
+            display: "Validation"
+            keywords: ["valider une enquête", "validation enquête", "circuit validation", "visa"]
+          - label: consultation
+            display: "Consultation / Export"
+            keywords: ["consultation", "consulter enquête", "export enquête", "export", "édition"]
+      - label: annuaire
+        display: "Annuaire (ETAA-PADI)"
+        keywords: ["annuaire", "ETAA", "PADI", "contrat de service", "liste agents"]
+      - label: ecran-accueil
+        display: "Écran d'accueil"
+        keywords: ["écran d'accueil", "page d'accueil", "accueil", "navigation"]
+      - label: documentation-novae
+        display: "Documentation NOVAE"
+        keywords: ["documentation NOVAE", "NOVAE"]
+
+  - label: technique
+    display: "Technique"
+    children:
+      - label: conception
+        display: "Conception"
+        children:
+          - label: conception-fonctionnelle
+            display: "Conception Fonctionnelle"
+            keywords: ["conception fonctionnelle", "spécification fonctionnelle", "expression de besoin", "règle de gestion", "parcours utilisateur"]
+          - label: conception-technique
+            display: "Conception Technique"
+            keywords: ["conception technique", "spécification technique", "architecture", "modèle de données", "diagramme"]
+          - label: design-ux
+            display: "Design / UX / Accessibilité"
+            keywords: ["design", "UX", "UI", "maquette", "wireframe", "IHM", "ergonomie", "accessibilité", "RGAA", "DSFR"]
+      - label: developpement
+        display: "Développement"
+        children:
+          - label: backend
+            display: "Backend"
+            keywords: ["backend", "back-end", "API REST", "API", "endpoint", "Spring Boot", "Java", "PostgreSQL", "JPA"]
+          - label: frontend
+            display: "Frontend"
+            keywords: ["frontend", "front-end", "composant", "Angular", "React", "Vue", "TypeScript"]
+          - label: integration
+            display: "Intégration / Connecteurs"
+            keywords: ["intégration", "connecteur", "flux", "batch", "web service", "synchronisation"]
+      - label: ops
+        display: "Ops"
+        children:
+          - label: infrastructure
+            display: "Infrastructure"
+            keywords: ["infrastructure", "serveur", "VM", "Docker", "Kubernetes", "K8s", "réseau"]
+          - label: deploiement
+            display: "Déploiement"
+            keywords: ["déploiement", "mise en production", "release", "livraison", "rollback"]
+          - label: exploitation
+            display: "Exploitation"
+            keywords: ["exploitation", "supervision", "maintenance", "incident", "MCO"]
+          - label: administration-bdd
+            display: "Administration BDD"
+            keywords: ["administration base", "script SQL", "migration", "initialisation BDD", "purge"]
+      - label: devops
+        display: "DevOps"
+        children:
+          - label: ci
+            display: "Intégration Continue"
+            keywords: ["intégration continue", "CI", "pipeline", "Jenkins", "build", "Nexus"]
+          - label: cd
+            display: "Déploiement Continu"
+            keywords: ["déploiement continu", "CD", "GitOps", "ArgoCD", "Helm"]
+          - label: scm
+            display: "Gestion de Code"
+            keywords: ["Git", "GitLab", "branche", "merge request", "tag"]
+      - label: qualite
+        display: "Qualité & Tests"
+        children:
+          - label: tests-unitaires
+            display: "Tests Unitaires"
+            keywords: ["test unitaire", "tests unitaires", "JUnit", "Mockito", "couverture de code"]
+          - label: tests-integration
+            display: "Tests d'Intégration"
+            keywords: ["test d'intégration", "tests d'intégration", "test API", "test end-to-end"]
+          - label: tests-fonctionnels
+            display: "Tests Fonctionnels"
+            keywords: ["test fonctionnel", "recette", "cahier de recette", "scénario de test", "anomalie", "bug"]
+          - label: tests-auto
+            display: "Tests Automatisés"
+            keywords: ["test automatisé", "Selenium", "Cypress", "Playwright", "non-régression"]
+          - label: analyse-statique
+            display: "Analyse Statique"
+            keywords: ["analyse statique", "SonarQube", "qualité de code", "dette technique"]
+      - label: performance
+        display: "Performance"
+        children:
+          - label: tests-performance
+            display: "Tests de Performance"
+            keywords: ["test de performance", "test de charge", "JMeter", "Gatling"]
+          - label: optimisation
+            display: "Optimisation"
+            keywords: ["optimisation", "cache", "indexation", "requête lente", "scalabilité"]
+      - label: observabilite
+        display: "Observabilité"
+        children:
+          - label: monitoring
+            display: "Monitoring"
+            keywords: ["monitoring", "Grafana", "Prometheus", "health check", "alerte"]
+          - label: logging
+            display: "Logging / Traces"
+            keywords: ["logging", "log", "Loki", "ELK", "trace", "audit", "traçabilité"]
+      - label: securite
+        display: "Sécurité"
+        children:
+          - label: authentification
+            display: "Authentification / SSO"
+            keywords: ["authentification", "SSO", "SAML", "OAuth", "OIDC", "token", "session"]
+          - label: autorisation
+            display: "Autorisation"
+            keywords: ["autorisation", "contrôle d'accès", "RBAC", "matrice de droits"]
+          - label: homologation
+            display: "Homologation Sécurité"
+            keywords: ["homologation", "audit de sécurité", "pentest", "ANSSI"]
+          - label: chiffrement
+            display: "Chiffrement"
+            keywords: ["chiffrement", "RGPD", "données personnelles", "anonymisation"]
+
+  - label: organisationnel
+    display: "Organisationnel"
+    children:
+      - label: pilotage
+        display: "Pilotage"
+        keywords: ["pilotage"]
+        children:
+          - label: tableaux-de-bord
+            display: "Tableaux de Bord"
+            keywords: ["tableau de bord", "dashboard", "indicateur", "KPI", "reporting", "statistique", "synthèse"]
+          - label: suivi-avancement
+            display: "Suivi Avancement"
+            keywords: ["état d'avancement", "avancement", "taux de réponse", "taux retour"]
+      - label: habilitations
+        display: "Habilitations"
+        keywords: ["habilitation", "profil utilisateur", "rôle utilisateur", "droit d'accès", "droits", "permission"]
+      - label: documentation
+        display: "Documentation"
+        children:
+          - label: doc-technique
+            display: "Documentation Technique"
+            keywords: ["documentation technique", "doc technique", "wiki", "Confluence", "Swagger", "OpenAPI"]
+          - label: doc-utilisateur
+            display: "Documentation Utilisateur"
+            keywords: ["documentation utilisateur", "guide utilisateur", "aide en ligne", "FAQ"]
+          - label: formation
+            display: "Formation"
+            keywords: ["formation", "support de formation", "atelier", "e-learning"]
+
+kpi:
+  weather:
+    sunny_threshold: 0.80
+    partly_cloudy_threshold: 0.60
+    cloudy_threshold: 0.40
+    rainy_threshold: 0.20
+
+tagger:
+  confidence_threshold: 0.45
+  max_labels_per_story: 6

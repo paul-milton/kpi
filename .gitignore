@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.egg
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+CLAUDE.md
+
+# BMAD
+_bmad/
+_bmad-output/
+
+# Data (runtime)
+data/*.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage / test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Build
+*.whl

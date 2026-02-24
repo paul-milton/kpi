@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "kpi-generator"
+version = "7.0.0"
+description = "KPI Generator — tinydb, single-word labels, prorata, weekly velocity, date-range reports"
+authors = ["KPI Team"]
+packages = [{include = "kpi", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+atlassian-python-api = "^3.41.0"
+jinja2 = "^3.1.0"
+pyyaml = "^6.0"
+python-decouple = "^3.8"
+structlog = "^24.0.0"
+pydantic = "^2.5.0"
+tinydb = "^4.8.0"
+python-dateutil = "^2.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+
+[tool.poetry.scripts]
+kpi = "kpi.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
