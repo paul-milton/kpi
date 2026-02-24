@@ -36,7 +36,17 @@
 <span style="font-size:{{(size*0.5)|int}}px;font-weight:700;color:{{clr}};margin-left:4px">{{val}}/5</span>
 {%- endmacro -%}
 
-{# ── Quatre carrés : météo + % temps + score à date + score global projet ── #}
+{# ── En-tête projet ── #}
+{%- macro project_header() -%}
+{%- set has_prev = r.variations|length > 0 -%}
+<div class="bg-white rounded-lg shadow-sm px-5 py-3 mb-3 text-center">
+  <div style="font-size:22px;font-weight:700;color:#253858">{{r.project_name or 'Projet'}}</div>
+  <div class="text-muted text-[12px] mt-1">Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+  {%- if has_prev %}<div class="text-[10px] text-dim mt-0.5">Comparaison avec la période précédente — les variations sont indiquées entre parenthèses</div>{%- endif %}
+</div>
+{%- endmacro -%}
+
+{# ── Quatre carrés : météo + temps + score projet à date + score global d'avancement ── #}
 {%- macro top_boxes() -%}
 {%- set weather_map = {'☀️':'Ensoleillé','⛅':'Partiellement couvert','🌥️':'Couvert','🌧️':'Pluvieux','⛈️':'Orageux'} -%}
 <div class="grid grid-cols-4 gap-3 mb-3">
@@ -48,18 +58,18 @@
     <div class="grid grid-cols-2 gap-2 mt-3">
       <div class="rounded bg-muted-bg px-2 py-1.5">
         <div class="topbox-sub">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
-        <div class="topbox-label">score à date {{ delta("score_date") }}</div>
+        <div class="topbox-label">avancement {{ delta("score_date") }}</div>
       </div>
       <div class="rounded bg-muted-bg px-2 py-1.5">
         <div class="topbox-sub">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
         <div class="topbox-label">temps écoulé</div>
       </div>
     </div>
-    <div class="topbox-label mt-1.5">score / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
+    <div class="topbox-label mt-1.5">avancement / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
   </div>
   {# ── CARRÉ TEMPS ── #}
   <div class="topbox">
-    <div class="topbox-title">% temps écoulé</div>
+    <div class="topbox-title">Temps écoulé</div>
     <div class="topbox-value {%if r.time_progress<=0.5%}text-ok{%elif r.time_progress<=0.75%}text-warn{%else%}text-err{%endif%}">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
     <div class="mt-2">{{ tbar(r.time_progress, 200, 12) }}</div>
     <div class="grid grid-cols-2 gap-2 mt-3">
@@ -74,48 +84,49 @@
     </div>
     <div class="topbox-label mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
   </div>
-  {# ── CARRÉ SCORE À DATE ── #}
+  {# ── CARRÉ SCORE PROJET À DATE ── #}
   <div class="topbox">
-    <div class="topbox-title">Score à date</div>
+    <div class="topbox-title">Score projet à date</div>
     <div class="topbox-value {%if r.score_global_date>=0.5%}text-ok{%elif r.score_global_date>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_date*100)|round(0)|int}}&nbsp;% {{ delta("score_date") }}</div>
     <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
     <div class="grid grid-cols-2 gap-2 mt-3">
       <div class="rounded bg-ok-bg px-2 py-1.5">
         <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">terminés {{ delta("terminés") }}</div>
+        <div class="topbox-label">livrables terminés {{ delta("terminés") }}</div>
       </div>
       <div class="rounded bg-muted-bg px-2 py-1.5">
         <div class="topbox-sub">{{r.date_total_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">total planifié à date</div>
+        <div class="topbox-label">livrables planifiés à date</div>
       </div>
     </div>
-    <div class="topbox-label mt-1.5">score pondéré — ratio brut&nbsp;: {{(r.overall_completion*100)|round(0)|int}}&nbsp;%</div>
+    <div class="topbox-label mt-1.5">avancement pondéré des livrables planifiés jusqu'au sprint courant</div>
   </div>
-  {# ── CARRÉ SCORE GLOBAL PROJET ── #}
+  {# ── CARRÉ SCORE GLOBAL D'AVANCEMENT ── #}
   <div class="topbox">
-    <div class="topbox-title">Score global projet</div>
+    <div class="topbox-title">Score global d'avancement</div>
     <div class="topbox-value {%if r.score_global_project>=0.5%}text-ok{%elif r.score_global_project>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_project*100)|round(0)|int}}&nbsp;% {{ delta("score_projet") }}</div>
     <div class="mt-2">{{ pbar(r.score_global_project, 200, 12, 0) }}</div>
     <div class="grid grid-cols-2 gap-2 mt-3">
       <div class="rounded bg-ok-bg px-2 py-1.5">
         <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">terminés</div>
+        <div class="topbox-label">livrables terminés</div>
       </div>
       <div class="rounded bg-muted-bg px-2 py-1.5">
         <div class="topbox-sub">{{r.done_points + r.estimated_remaining}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">total projet estimé</div>
+        <div class="topbox-label">total livrables estimé</div>
       </div>
     </div>
-    <div class="topbox-label mt-1.5">complétude structurelle toutes stories (incluant projections)</div>
+    <div class="topbox-label mt-1.5">complétude structurelle de tous les livrables (incluant projections)</div>
   </div>
 </div>
 <div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
   <div class="pedagogy" style="margin:0">
-    <strong>Score global</strong> ≠ ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
+    <strong>Scores d'avancement</strong> — mesure la complétude pondérée des <strong>livrables</strong> (user stories), pas un simple ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
-      <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
-      <li><strong>À date</strong>&nbsp;: ne compte que les livrables planifiés jusqu'à la période en cours</li>
-      <li><strong>Global projet</strong>&nbsp;: inclut toutes les stories + projections futures</li>
+      <li>Chaque livrable est pondéré par ses story points&nbsp;: un livrable de 13 pts pèse plus qu'un de 3 pts</li>
+      <li>Livrable livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
+      <li><strong>Score projet à date</strong>&nbsp;: ne mesure que les livrables planifiés jusqu'au sprint courant</li>
+      <li><strong>Score global d'avancement</strong>&nbsp;: inclut tous les livrables du projet + projections futures</li>
     </ul>
   </div>
 </div>

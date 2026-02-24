@@ -5,17 +5,16 @@
 <title>{{ r.project_name or 'KPI' }} — À Date — Sprint {{ r.sprint_number }}</title>
 {% include '_shared.html' %}
 </head>
-{% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, top_boxes, fold_js with context %}
+{% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, project_header, top_boxes, fold_js with context %}
 
 <body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
 <div class="max-w-[1300px] mx-auto">
 
-{# ══════════ TROIS CARRÉS : TEMPS + SCORE À DATE + SCORE PROJET ══════════ #}
+{{ project_header() }}
 {{ top_boxes() }}
 
-{# ══════════ EN-TÊTE ══════════ #}
+{# ══════════ DÉTAIL ══════════ #}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <div class="text-center text-muted text-[11px] mb-2">Rapport à date — Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
 
   {# Story points + User stories — colonnes alignées #}
   {%- set active_pts = r.all_stories|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
