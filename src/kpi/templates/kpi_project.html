@@ -17,12 +17,42 @@
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <div class="text-center text-muted text-[11px] mb-2">Rapport global projet — Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
 
-  {# Indicateurs clés #}
-  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-1 mb-1.5 ml-0.5">&#x1F3AF; Story points</div>
-  <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+  {# Synthèse #}
+  {%if r.raf%}
+  {%- set gap = (r.raf.avg_velocity_per_week - r.raf.velocity_needed_per_week)|round(1) -%}
+  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-1 mb-1.5 ml-0.5">&#x1F4CA; Synthèse <span class="font-normal">(restant projeté inclut +10&nbsp;% marge de sécurité)</span></div>
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2">
+    <div class="rounded-lg p-4 text-center {{ status_bg(r.raf.on_track) }}">
+      <span class="text-[28px] font-bold leading-tight block">{%if r.raf.on_track%}&#x2705;{%else%}&#x26A0;&#xFE0F;{%endif%}</span>
+      <span class="text-[11px] font-semibold block mt-1">{%if r.raf.on_track%}en bonne voie{%else%}vigilance requise{%endif%}</span>
+    </div>
+    <div class="rounded-lg p-4 text-center {%if r.raf.avg_velocity_per_week >= r.raf.velocity_needed_per_week%}bg-ok-bg{%else%}bg-err-bg{%endif%}">
+      <span class="text-[26px] font-bold leading-tight block">{{r.raf.avg_velocity_per_week}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">pts / semaine (réel)</span>
+    </div>
+    <div class="rounded-lg p-4 text-center bg-muted-bg">
+      <span class="text-[26px] font-bold leading-tight block">{{r.raf.velocity_needed_per_week}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">pts / semaine (requis)</span>
+    </div>
+    <div class="rounded-lg p-4 text-center {%if gap >= 0%}bg-ok-bg{%else%}bg-err-bg{%endif%}">
+      <span class="text-[26px] font-bold leading-tight block">{%if gap > 0%}+{%endif%}{{gap}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">écart pts / semaine</span>
+    </div>
+    {%if r.raf.unestimated_count%}
+    <div class="rounded-lg p-4 text-center bg-warn-bg">
+      <span class="text-[26px] font-bold leading-tight block">+{{r.raf.unestimated_padding}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">{{r.raf.unestimated_count}} US non estimées</span>
+    </div>
+    {%endif%}
+  </div>
+  {%endif%}
+
+  {# Story points + User stories — colonnes alignées #}
+  <div class="grid grid-cols-4 gap-2 mt-3">
+    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4">&#x1F3AF; Story points</div>
     <div class="rounded-lg p-3 text-center bg-ok-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.done_points}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x2705; points terminés</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminés</span>
       {{ delta("terminés") }}
     </div>
     <div class="rounded-lg p-3 text-center bg-warn-bg">
@@ -36,35 +66,27 @@
     </div>
     <div class="rounded-lg p-3 text-center bg-err-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloqués</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; US bloquées</span>
       {{ delta("bloquées") }}
     </div>
+    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
+    <div class="rounded-lg p-3 text-center bg-ok-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['done','delivered'])|list|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminées</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-accent-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['in-progress','review','testing'])|list|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F504; en cours</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-muted-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">total</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-err-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloquées</span>
+    </div>
   </div>
-
-  {# Synthèse #}
-  {%if r.raf%}
-  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-3 mb-1.5 ml-0.5">&#x1F4CA; Synthèse</div>
-  <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
-    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
-      <span class="text-[22px] font-bold leading-tight block">{{r.raf.avg_velocity_per_week}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">points / semaine moyenne</span>
-    </div>
-    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
-      <span class="text-[22px] font-bold leading-tight block">{{r.raf.velocity_needed_per_week}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">points / semaine requis</span>
-    </div>
-    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
-      <span class="text-[28px] font-bold leading-tight block">{%if r.raf.on_track%}&#x2705;{%else%}&#x1F6A8;{%endif%}</span>
-      <span class="text-[10px] text-dim block mt-0.5">{%if r.raf.on_track%}en bonne voie{%else%}à risque{%endif%}</span>
-    </div>
-    {%if r.raf.unestimated_count%}
-    <div class="rounded-lg p-3 text-center bg-warn-bg">
-      <span class="text-[22px] font-bold leading-tight block">+{{r.raf.unestimated_padding}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F4DD; {{r.raf.unestimated_count}} non estimées</span>
-    </div>
-    {%endif%}
-  </div>
-  {%endif%}
 </div>
 
 {# ══════════ SCORE GLOBAL PROJET ══════════ #}
@@ -88,14 +110,19 @@
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
-    <strong>Score structurel&nbsp;:</strong> avancement pondéré par statut (Done = 100&nbsp;%, In Progress = 50&nbsp;%).
+    <strong>Score structurel</strong> ≠ ratio terminé/total.
+    <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
+      <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
+      <li>Pondéré par le poids en story points de chaque livrable</li>
+      <li>Reflète l'avancement réel, pas seulement le nombre de livrables terminés</li>
+    </ul>
   </div>
   <table class="w-full border-collapse text-xs">
   <thead><tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[200px]">Domaine</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Météo</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[140px]">Score structurel</th>
-    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Bloqués</th>
+    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">US bloquées</th>
   </tr></thead>
   <tbody>{{ unified_tree(r.tag_scores) }}</tbody>
   </table>
@@ -153,7 +180,7 @@
 {# ══════════ BLOQUÉS ══════════ #}
 {%if r.blocked_stories%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; Bloqués — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} points)</h2>
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} points)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Clé</th>

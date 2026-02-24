@@ -22,17 +22,49 @@
 {# ── Deux carrés : % temps + score global ── #}
 {%- macro top_boxes() -%}
 <div class="grid grid-cols-2 gap-3 mb-3">
+  {# ── CARRÉ TEMPS ── #}
   <div class="bg-white rounded-lg shadow-sm p-5 text-center">
     <div class="text-[10px] text-muted uppercase tracking-wider mb-2">% temps écoulé</div>
     <div class="text-[32px] font-bold leading-tight">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
     <div class="mt-2">{{ pbar(r.time_progress, 200, 12, 0) }}</div>
-    <div class="text-[10px] text-muted mt-1.5">{{r.project_start}} → {{r.project_end}} <span class="{%if r.days_remaining<=30%}text-err font-bold{%elif r.days_remaining<=90%}text-warn{%else%}text-muted{%endif%}">({{r.days_remaining}}&nbsp;j)</span></div>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <div class="rounded bg-muted-bg px-2 py-1.5">
+        <div class="text-[16px] font-bold">{{r.business_days_elapsed}}</div>
+        <div class="text-[9px] text-muted">jours ouvrés écoulés</div>
+      </div>
+      <div class="rounded {%if r.business_days_remaining<=40%}bg-err-bg{%elif r.business_days_remaining<=80%}bg-warn-bg{%else%}bg-muted-bg{%endif%} px-2 py-1.5">
+        <div class="text-[16px] font-bold">{{r.business_days_remaining}}</div>
+        <div class="text-[9px] text-muted">jours ouvrés restants</div>
+      </div>
+    </div>
+    <div class="text-[9px] text-muted mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
   </div>
+  {# ── CARRÉ SCORE ── #}
   <div class="bg-white rounded-lg shadow-sm p-5 text-center">
     <div class="text-[10px] text-muted uppercase tracking-wider mb-2">Score global d'avancement au {{r.generated_at.strftime('%d/%m/%Y')}}</div>
     <div class="text-[32px] font-bold leading-tight">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
     <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
-    <div class="text-[10px] text-muted mt-1.5">{{r.overall_weather.value}} pondéré par statut et date — {{r.done_points}} / {{r.total_points}} pts terminés ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%)</div>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <div class="rounded bg-ok-bg px-2 py-1.5">
+        <div class="text-[16px] font-bold">{{r.done_points}}</div>
+        <div class="text-[9px] text-muted">pts terminés</div>
+      </div>
+      <div class="rounded bg-muted-bg px-2 py-1.5">
+        <div class="text-[16px] font-bold">{{r.total_points}}</div>
+        <div class="text-[9px] text-muted">pts total</div>
+      </div>
+    </div>
+    <div class="text-[9px] text-muted mt-1.5">{{r.overall_weather.value}} score pondéré — ratio brut&nbsp;: {{(r.overall_completion*100)|round(0)|int}}&nbsp;%</div>
+  </div>
+</div>
+<div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
+  <div class="pedagogy" style="margin:0">
+    <strong>Score global</strong> ≠ ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
+    <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
+      <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
+      <li>Ne compte que les livrables planifiés jusqu'à la période en cours</li>
+      <li>Mesure l'avancement réel par rapport aux jalons prévus à date</li>
+    </ul>
   </div>
 </div>
 {%- endmacro -%}

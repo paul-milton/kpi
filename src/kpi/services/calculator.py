@@ -20,7 +20,7 @@ from kpi.domain.models import (
     RAFEstimation, Snapshot, SprintVelocity, StatusBreakdown, StoryStatus,
     TagScore, Variation, WeatherIcon, WeeklyReport,
 )
-from kpi.services.dates import build_sprint_calendar, find_current_sprint, weeks_elapsed, weeks_remaining
+from kpi.services.dates import build_sprint_calendar, business_days_france, find_current_sprint, parse_date, weeks_elapsed, weeks_remaining
 
 logger = structlog.get_logger()
 
@@ -174,6 +174,8 @@ class KPICalculator:
             project_end=self._pcfg.get("end_date", "2026-09-30"),
             time_progress=round(time_progress, 4),
             days_remaining=max((date.fromisoformat(self._pcfg.get("end_date", "2026-09-30")) - date.today()).days, 0),
+            business_days_elapsed=business_days_france(parse_date(self._pcfg.get("start_date", "2025-10-01")), date.today()),
+            business_days_remaining=business_days_france(date.today(), parse_date(self._pcfg.get("end_date", "2026-09-30"))),
             sprint_duration_weeks=self._sw,
             tag_scores=tag_scores,
             score_global_date=round(score_global_date, 4),

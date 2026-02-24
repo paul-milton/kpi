@@ -124,7 +124,7 @@ with open(os.path.join(BASE, 'templates', '_macros.html')) as f: tpl+=f.read()
 t("tpl_tailwind_cdn", 'cdn.tailwindcss.com' in tpl)
 t("tpl_tailwind_config", 'tailwind.config' in tpl)
 t("tpl_has_macros", '{%- macro ' in tpl)
-t("tpl_pts_termines", 'points terminés' in tpl)
+t("tpl_pts_termines", 'terminés' in tpl)
 t("tpl_restant_estime", 'restant projeté' in tpl)
 t("tpl_fold", 'fold(' in tpl)
 t("tpl_drawer", 'drawer' in tpl)
@@ -1132,10 +1132,10 @@ tpl_proj2 = _tpl_dir.joinpath("kpi_project.html").read_text() + _shared
 tpl_prev2 = _tpl_dir.joinpath("kpi_preview.html").read_text() + _shared
 tpl_conf2 = _tpl_dir.joinpath("kpi_confluence.html.j2").read_text()
 
-t("banner_date_template", "top_boxes" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
-t("banner_project_template", "top_boxes" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
-t("banner_preview_template", "top_boxes" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
-t("banner_confluence_template", "r.project_end" in tpl_conf2 and "r.days_remaining" in tpl_conf2)
+t("banner_date_template", "top_boxes" in tpl_date2 and "r.project_end" in tpl_date2 and "r.business_days_remaining" in tpl_date2)
+t("banner_project_template", "top_boxes" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.business_days_remaining" in tpl_proj2)
+t("banner_preview_template", "top_boxes" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.business_days_remaining" in tpl_prev2)
+t("banner_confluence_template", "r.project_end" in tpl_conf2 and "r.business_days_remaining" in tpl_conf2)
 
 # AC1: time_progress bar in banner
 t("banner_time_progress_bar", "r.time_progress" in tpl_date2 and "r.time_progress" in tpl_proj2)

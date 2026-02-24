@@ -18,11 +18,11 @@
   <div class="text-center text-muted text-[11px] mb-2">Rapport à date — Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
 
   {# Indicateurs clés #}
-  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-1 mb-1.5 ml-0.5">&#x1F3AF; Story points</div>
-  <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+  <div class="grid grid-cols-4 gap-2 mt-1">
+    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4">&#x1F3AF; Story points</div>
     <div class="rounded-lg p-3 text-center bg-ok-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.done_points}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x2705; points terminés</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminés</span>
       {{ delta("terminés") }}
     </div>
     <div class="rounded-lg p-3 text-center bg-warn-bg">
@@ -35,7 +35,24 @@
     </div>
     <div class="rounded-lg p-3 text-center bg-err-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloqués</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; US bloquées</span>
+    </div>
+    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
+    <div class="rounded-lg p-3 text-center bg-ok-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['done','delivered'])|list|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminées</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-accent-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['in-progress','review','testing'])|list|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F504; en cours</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-muted-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">total</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-err-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloquées</span>
     </div>
   </div>
 </div>
@@ -45,14 +62,19 @@
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
-    <strong>Score structurel&nbsp;:</strong> avancement pondéré par statut (Done = 100&nbsp;%, In Progress = 50&nbsp;%).
+    <strong>Score structurel</strong> ≠ ratio terminé/total.
+    <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
+      <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
+      <li>Pondéré par le poids en story points de chaque livrable</li>
+      <li>Reflète l'avancement réel, pas seulement le nombre de livrables terminés</li>
+    </ul>
   </div>
   <table class="w-full border-collapse text-xs">
   <thead><tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[200px]">Domaine</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Météo</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[140px]">Score structurel</th>
-    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Bloqués</th>
+    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">US bloquées</th>
   </tr></thead>
   <tbody>{{ unified_tree(r.tag_scores) }}</tbody>
   </table>
@@ -81,7 +103,7 @@
 {# ══════════ BLOQUÉS ══════════ #}
 {%if r.blocked_stories%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; Bloqués — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} points)</h2>
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} points)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Clé</th>
