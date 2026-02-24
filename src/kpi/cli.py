@@ -54,7 +54,10 @@ def _snap(r, store):
         snapshot_date=date.today().isoformat(), sprint_number=r.sprint_number,
         total_points=r.total_points, done_points=r.done_points,
         blocked_count=len(r.blocked_stories), completion_ratio=r.overall_completion,
-        avg_velocity_per_week=r.raf.avg_velocity_per_week if r.raf else 0))
+        avg_velocity_per_week=r.raf.avg_velocity_per_week if r.raf else 0,
+        score_global=r.score_global_project,
+        tag_scores={ts.label: ts.score for ts in r.tag_scores if ts.total_points > 0},
+        backlog_variation=r.backlog_stability.variation_project if r.backlog_stability else 0.0))
 
 def _show(r):
     click.echo(f"\n  📊 {r.total_points} pts | {r.done_points} terminés ({r.overall_completion:.1%})")
@@ -92,6 +95,70 @@ def generate(ctx, date_from, date_to):
     cfg = ctx.obj["cfg"]
     s, v, u, sp = _fetch(cfg); r, store = _report(cfg, s, v, u, sp); _snap(r, store)
     rr = ReportRenderer(); t = rr.build_title(r)
+    ConfluenceAdapter(cfg).publish(t, rr.render_confluence(r)); _show(r)
+    click.echo(f"  📄 {t}")
+
+
+@main.command("report-date")
+@click.option("-o", "--output", default=None, help="Output HTML file")
+@click.pass_context
+def report_date(ctx, output):
+    """Generate 'a date' HTML report (current sprint view)."""
+    cfg = ctx.obj["cfg"]
+    s, v, u, sp = _fetch(cfg); r, store = _report(cfg, s, v, u, sp); _snap(r, store)
+    html = ReportRenderer().render_date(r)
+    p = Path(output) if output else Path("kpi_date.html")
+    p.write_text(html, encoding="utf-8"); _show(r)
+    try: webbrowser.open(p.resolve().as_uri())
+    except: pass
+
+
+@main.command("report-project")
+@click.option("-o", "--output", default=None, help="Output HTML file")
+@click.option("--compare-with", default=None, help="Compare with date (YYYY-MM-DD) or sprint (sprint-N)")
+@click.pass_context
+def report_project(ctx, output, compare_with):
+    """Generate 'global projet' HTML report (full project view with projections)."""
+    cfg = ctx.obj["cfg"]
+    s, v, u, sp = _fetch(cfg)
+    store = SnapshotStore(cfg); calc = KPICalculator(cfg)
+    sn = cfg.get("project",{}).get("current_sprint", 1)
+    prev = None
+    if compare_with:
+        if compare_with.startswith("sprint-"):
+            try: prev = store.load_by_sprint(int(compare_with.split("-")[1]))
+            except: click.echo(f"  ⚠️  sprint invalide: {compare_with}")
+        else:
+            prev = store.load_by_date(compare_with)
+            if not prev: click.echo(f"  ⚠️  snapshot non trouvé: {compare_with}")
+    if not prev: prev = store.load_previous_sprint(sn)
+    r = calc.compute(s, v, u, prev, jira_sprints=sp)
+    _snap(r, store)
+    html = ReportRenderer().render_project(r)
+    p = Path(output) if output else Path("kpi_project.html")
+    p.write_text(html, encoding="utf-8"); _show(r)
+    try: webbrowser.open(p.resolve().as_uri())
+    except: pass
+
+
+@main.command("publish-date")
+@click.pass_context
+def publish_date(ctx):
+    """Publish 'a date' report to Confluence."""
+    cfg = ctx.obj["cfg"]
+    s, v, u, sp = _fetch(cfg); r, store = _report(cfg, s, v, u, sp); _snap(r, store)
+    rr = ReportRenderer(); t = rr.build_title(r).replace("Hebdo", "A Date")
+    ConfluenceAdapter(cfg).publish(t, rr.render_confluence(r)); _show(r)
+    click.echo(f"  📄 {t}")
+
+
+@main.command("publish-project")
+@click.pass_context
+def publish_project(ctx):
+    """Publish 'global projet' report to Confluence."""
+    cfg = ctx.obj["cfg"]
+    s, v, u, sp = _fetch(cfg); r, store = _report(cfg, s, v, u, sp); _snap(r, store)
+    rr = ReportRenderer(); t = rr.build_title(r).replace("Hebdo", "Global Projet")
     ConfluenceAdapter(cfg).publish(t, rr.render_confluence(r)); _show(r)
     click.echo(f"  📄 {t}")
 
@@ -248,6 +315,29 @@ def compare(ctx, date_a, date_b):
         ("vel/sem",a.avg_velocity_per_week,b.avg_velocity_per_week)]:
         d = vb - va; click.echo(f"  {l:15s} {str(va):>8s} → {str(vb):>8s}  ({'+' if d>0 else ''}{d})")
     click.echo()
+
+
+@main.command()
+@click.option("--stories", default=300, help="Number of stories to generate")
+@click.option("--noise", default=0.35, help="Noise ratio (0.0-1.0)")
+@click.option("--seed", default=42, help="Random seed for reproducibility")
+@click.option("-o", "--output", default="data/mock.json", help="Output JSON file")
+@click.pass_context
+def mock(ctx, stories, noise, seed, output):
+    """Generate mock Jira data with realistic imperfections."""
+    from kpi.services.mock import MockGenerator
+    cfg = ctx.obj["cfg"]
+    gen = MockGenerator(cfg, seed=seed)
+    data = gen.generate(count=stories, noise=noise)
+    vels = gen.generate_velocities(data)
+    p = Path(output); p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(gen.to_json(data), encoding="utf-8")
+    done = sum(1 for s in data if s.status in {"done", "delivered"})
+    noisy = sum(1 for s in data if not s.labels or s.story_points == 0)
+    click.echo(f"\n  🎲 {len(data)} stories generees (seed={seed}, noise={noise})")
+    click.echo(f"  ✅ {done} done | 📊 {sum(s.story_points for s in data)} pts | ⚡ {len(vels)} sprints")
+    click.echo(f"  🔧 ~{noisy} imperfections")
+    click.echo(f"  💾 {p}\n")
 
 
 if __name__ == "__main__": main()

@@ -25,6 +25,12 @@ class ReportRenderer:
     def render_preview(self, r: WeeklyReport) -> str:
         return self._env.get_template("kpi_preview.html").render(r=r)
 
+    def render_date(self, r: WeeklyReport) -> str:
+        return self._env.get_template("kpi_date.html").render(r=r)
+
+    def render_project(self, r: WeeklyReport) -> str:
+        return self._env.get_template("kpi_project.html").render(r=r)
+
     def render_confluence(self, r: WeeklyReport) -> str:
         return self._env.get_template("kpi_confluence.html.j2").render(r=r)
 

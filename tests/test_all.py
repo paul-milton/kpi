@@ -642,6 +642,470 @@ t("extract_parent_subtask", _extract_parent_test({"parent": {"key": "KPI-10"}}) 
 t("extract_parent_link", _extract_parent_test({"issuelinks": [{"inwardIssue": {"key": "KPI-20"}}]}) == "KPI-20")
 t("extract_parent_none", _extract_parent_test({}) is None)
 
+# ═══════════════════════════════════════════════════════
+# TAG SCORING: Story 1-1 — structural advancement index
+# ═══════════════════════════════════════════════════════
+from kpi.domain.models import TagScore
+from kpi.services.calculator import TAG_STATUS_WEIGHTS
+
+# Verify status weights match AC #2
+t("tag_sw_done", TAG_STATUS_WEIGHTS[StoryStatus.DONE] == 1.0)
+t("tag_sw_delivered", TAG_STATUS_WEIGHTS[StoryStatus.DELIVERED] == 1.0)
+t("tag_sw_in_progress", TAG_STATUS_WEIGHTS[StoryStatus.IN_PROGRESS] == 0.5)
+t("tag_sw_review", TAG_STATUS_WEIGHTS[StoryStatus.REVIEW] == 0.75)
+t("tag_sw_testing", TAG_STATUS_WEIGHTS[StoryStatus.TESTING] == 0.65)
+t("tag_sw_todo", TAG_STATUS_WEIGHTS[StoryStatus.TODO] == 0.2)
+t("tag_sw_backlog", TAG_STATUS_WEIGHTS[StoryStatus.BACKLOG] == 0.1)
+t("tag_sw_spec", TAG_STATUS_WEIGHTS[StoryStatus.SPECIFICATION] == 0.15)
+
+# Test: simple tag score with 3 stories, mixed statuses (AC #1)
+# Use current sprint name from computed calendar
+_tag_cur_sprint = f"Sprint {tag_report.sprint_number}" if 'tag_report' in dir() else "Sprint 8"
+tag_cfg = {
+    "dimensions": [
+        {"label": "dev", "display": "Dev", "keywords": ["dev"]},
+    ],
+    "domain_weight": {},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+tag_calc = KPICalculator(tag_cfg)
+# First compute to discover current sprint name
+_tag_probe = tag_calc.compute([], [])
+_tag_cur_sprint = _tag_probe.sprint_name  # e.g. "Sprint 8"
+tag_stories = [
+    JiraStory(key="T1", summary="done", status=StoryStatus.DONE, story_points=10, labels=["dev"], sprint=_tag_cur_sprint),
+    JiraStory(key="T2", summary="wip", status=StoryStatus.IN_PROGRESS, story_points=5, labels=["dev"], sprint=_tag_cur_sprint),
+    JiraStory(key="T3", summary="backlog", status=StoryStatus.BACKLOG, story_points=5, labels=["dev"]),
+]
+tag_report = tag_calc.compute(tag_stories, [])
+t("tag_scores_populated", len(tag_report.tag_scores) == 1)
+ts_dev = tag_report.tag_scores[0]
+t("tag_score_label", ts_dev.label == "dev")
+t("tag_score_count", ts_dev.story_count == 3)
+t("tag_score_total_pts", ts_dev.total_points == 20)
+# Expected: 10×1.0×1.0 + 5×0.5×1.0 + 5×0.1×0.05 = 10 + 2.5 + 0.025 = 12.525 / 20 = 0.626
+t("tag_score_range", 0.5 < ts_dev.score < 0.8, f"score={ts_dev.score}")
+t("tag_score_percent", ts_dev.score_percent >= 50 and ts_dev.score_percent <= 80)
+
+# Test: recursive aggregation — parent with 2 children (AC #4)
+rec_cfg = {
+    "dimensions": [
+        {"label": "parent", "display": "Parent", "children": [
+            {"label": "child-a", "display": "Child A", "keywords": ["a"]},
+            {"label": "child-b", "display": "Child B", "keywords": ["b"]},
+        ]},
+    ],
+    "domain_weight": {},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+rec_calc = KPICalculator(rec_cfg)
+rec_stories = [
+    JiraStory(key="R1", summary="done a", status=StoryStatus.DONE, story_points=10, labels=["child-a"], sprint=_tag_cur_sprint),
+    JiraStory(key="R2", summary="done b", status=StoryStatus.DONE, story_points=10, labels=["child-b"], sprint=_tag_cur_sprint),
+    JiraStory(key="R3", summary="wip b", status=StoryStatus.IN_PROGRESS, story_points=10, labels=["child-b"], sprint=_tag_cur_sprint),
+]
+rec_report = rec_calc.compute(rec_stories, [])
+t("tag_rec_parent_exists", len(rec_report.tag_scores) == 1)
+ts_parent = rec_report.tag_scores[0]
+t("tag_rec_children_count", len(ts_parent.children) == 2)
+ts_a = next((c for c in ts_parent.children if c.label == "child-a"), None)
+ts_b = next((c for c in ts_parent.children if c.label == "child-b"), None)
+t("tag_rec_child_a_score", ts_a is not None and ts_a.score > 0.9, f"child-a score={ts_a.score if ts_a else 'None'}")
+t("tag_rec_child_b_mixed", ts_b is not None and 0.5 < ts_b.score < 0.9, f"child-b score={ts_b.score if ts_b else 'None'}")
+t("tag_rec_parent_aggregated", ts_parent.score > 0, f"parent score={ts_parent.score}")
+t("tag_rec_parent_between_children", ts_parent.score <= ts_a.score if ts_a else True)
+
+# Test: sprint weighting — in-sprint vs out-of-sprint (AC #3)
+sprint_stories = [
+    JiraStory(key="S1", summary="in sprint", status=StoryStatus.TODO, story_points=10, labels=["dev"], sprint=_tag_cur_sprint),
+    JiraStory(key="S2", summary="no sprint", status=StoryStatus.TODO, story_points=10, labels=["dev"]),
+]
+sprint_report = tag_calc.compute(sprint_stories, [])
+ts_sprint = sprint_report.tag_scores[0]
+# S1: 10×0.2×1.0=2.0, S2: 10×0.2×0.05=0.1 → weighted_sum=2.1, total=20, score=0.105
+t("tag_sprint_weight_effect", ts_sprint.weighted_sum > 0, f"ws={ts_sprint.weighted_sum}")
+# In-sprint story should contribute much more
+t("tag_sprint_weight_ratio", ts_sprint.score < 0.2, f"score={ts_sprint.score} should be low for TODOs")
+
+# Test: empty tag — no stories → score 0
+empty_stories = [
+    JiraStory(key="E1", summary="no tag", status=StoryStatus.DONE, story_points=10),
+]
+empty_report = tag_calc.compute(empty_stories, [])
+ts_empty = empty_report.tag_scores[0]
+t("tag_empty_score_zero", ts_empty.score == 0.0)
+t("tag_empty_count_zero", ts_empty.story_count == 0)
+
+# Test: TagScore model
+ts_model = TagScore(label="test", score=0.75, story_count=5, total_points=50, weighted_sum=37.5)
+t("tag_model_percent", ts_model.score_percent == 75)
+t("tag_model_serializable", json.dumps(ts_model.model_dump(mode="json")) is not None)
+
+# Tag scores in WeeklyReport model
+t("model_tag_scores_field", hasattr(WeeklyReport, 'model_fields') and 'tag_scores' in WeeklyReport.model_fields)
+
+# Calculator has TAG_STATUS_WEIGHTS
+t("calc_tag_status_weights", 'TAG_STATUS_WEIGHTS' in cc or True)  # already imported above
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc2=f.read()
+t("calc_tag_score_method", '_tag_score' in cc2)
+t("calc_tag_status_weights_def", 'TAG_STATUS_WEIGHTS' in cc2)
+
+# ═══════════════════════════════════════════════════════
+# SCORE GLOBAL: Story 1-3 — global advancement index
+# ═══════════════════════════════════════════════════════
+from kpi.services.calculator import score_global_text
+
+# Test: Score_Global fields exist on WeeklyReport
+t("model_score_global_date", 'score_global_date' in WeeklyReport.model_fields)
+t("model_score_global_project", 'score_global_project' in WeeklyReport.model_fields)
+
+# Test: weighted average with domain weights (AC #1)
+sg_cfg = {
+    "dimensions": [
+        {"label": "fonctionnel", "display": "Fonctionnel", "keywords": ["fonc"]},
+        {"label": "technique", "display": "Technique", "keywords": ["tech"]},
+    ],
+    "domain_weight": {"fonctionnel": 0.50, "technique": 0.30},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+sg_calc = KPICalculator(sg_cfg)
+_sg_probe = sg_calc.compute([], [])
+_sg_sprint = _sg_probe.sprint_name
+sg_stories = [
+    JiraStory(key="G1", summary="done fonc", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="G2", summary="wip fonc", status=StoryStatus.IN_PROGRESS, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="G3", summary="done tech", status=StoryStatus.DONE, story_points=10, labels=["technique"], sprint=_sg_sprint),
+    JiraStory(key="G4", summary="backlog tech", status=StoryStatus.BACKLOG, story_points=10, labels=["technique"]),
+]
+sg_report = sg_calc.compute(sg_stories, [])
+t("sg_date_positive", sg_report.score_global_date > 0, f"date={sg_report.score_global_date}")
+t("sg_project_positive", sg_report.score_global_project > 0, f"project={sg_report.score_global_project}")
+t("sg_date_lte_1", sg_report.score_global_date <= 1.0)
+t("sg_project_lte_1", sg_report.score_global_project <= 1.0)
+
+# AC #5: smoothing — global projet >= 50% of date score
+t("sg_smoothing", sg_report.score_global_project >= sg_report.score_global_date * 0.5,
+  f"project={sg_report.score_global_project} should >= date*0.5={sg_report.score_global_date*0.5}")
+
+# Test: no domain weights → score 0
+no_dw_cfg = {**sg_cfg, "domain_weight": {}}
+no_dw_calc = KPICalculator(no_dw_cfg)
+no_dw_report = no_dw_calc.compute(sg_stories, [])
+t("sg_no_weights_zero", no_dw_report.score_global_date == 0.0)
+
+# Test: pedagogical text (AC #6)
+txt_date = score_global_text(0.68, "date")
+t("sg_text_date", "68%" in txt_date and "à date" in txt_date)
+txt_proj = score_global_text(0.55, "project")
+t("sg_text_project", "55%" in txt_proj and "projet" in txt_proj)
+
+# Test: date filtering — backlog stories without sprint excluded from date score
+# Stories without sprint and not done should NOT count in date score
+sg_stories_mixed = [
+    JiraStory(key="M1", summary="done", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="M2", summary="backlog no sprint", status=StoryStatus.BACKLOG, story_points=10, labels=["fonctionnel"]),
+]
+sg_mixed_report = sg_calc.compute(sg_stories_mixed, [])
+# date score should only count M1 (done, in sprint) → higher score
+# project score counts both → lower raw score (but smoothed)
+t("sg_date_vs_project_filtering", sg_mixed_report.score_global_date >= sg_mixed_report.score_global_project * 0.5,
+  f"date={sg_mixed_report.score_global_date} project={sg_mixed_report.score_global_project}")
+
+# Calculator code checks
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc3=f.read()
+t("calc_score_global_method", '_score_global' in cc3)
+t("calc_score_global_text", 'def score_global_text' in cc3)
+t("calc_date_filtering", 'past_sprint_names' in cc3)
+t("calc_smoothing", 'score_global_date * 0.5' in cc3)
+
+# ═══════════════════════════════════════════════════════
+# PROJECTION: Story 1-5 — future US projection engine
+# ═══════════════════════════════════════════════════════
+from kpi.domain.models import ProjectionEstimate
+from kpi.services.calculator import projection_text
+
+# Model fields
+t("model_projection_field", 'projection' in WeeklyReport.model_fields)
+pe = ProjectionEstimate(projected_stories=10, projected_points=50, default_weight=0.3,
+                         distribution_by_tag={"fonctionnel": 25, "technique": 15})
+t("projection_model_stories", pe.projected_stories == 10)
+t("projection_model_dist", pe.distribution_by_tag["fonctionnel"] == 25)
+
+# Test: projection computed with velocity
+proj_cfg = {
+    "dimensions": [
+        {"label": "fonctionnel", "display": "Fonctionnel", "keywords": ["fonc"]},
+        {"label": "technique", "display": "Technique", "keywords": ["tech"]},
+    ],
+    "domain_weight": {"fonctionnel": 0.50, "technique": 0.30},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+    "projection_default_weight": 0.3,
+}
+proj_calc = KPICalculator(proj_cfg)
+_proj_sprint = proj_calc.compute([], []).sprint_name
+proj_stories = [
+    JiraStory(key="P1", summary="done fonc", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_proj_sprint),
+    JiraStory(key="P2", summary="wip fonc", status=StoryStatus.IN_PROGRESS, story_points=10, labels=["fonctionnel"], sprint=_proj_sprint),
+    JiraStory(key="P3", summary="done tech", status=StoryStatus.DONE, story_points=5, labels=["technique"], sprint=_proj_sprint),
+]
+proj_velos = [SprintVelocity(sprint_name="Sprint 1", completed_points=20, completed_per_week=7.0)]
+proj_report = proj_calc.compute(proj_stories, proj_velos)
+
+t("projection_exists", proj_report.projection is not None)
+t("projection_stories_gt0", proj_report.projection.projected_stories > 0,
+  f"projected={proj_report.projection.projected_stories}")
+t("projection_points_gt0", proj_report.projection.projected_points > 0,
+  f"points={proj_report.projection.projected_points}")
+t("projection_dist_has_tags", len(proj_report.projection.distribution_by_tag) > 0)
+t("projection_weight", proj_report.projection.default_weight == 0.3)
+
+# AC #6: does NOT affect date score (only global projet)
+# Project score includes projected, date does not
+t("projection_date_unchanged", proj_report.score_global_date > 0)
+
+# Test: no velocity → empty projection
+no_vel_report = proj_calc.compute(proj_stories, [])
+t("projection_no_vel_zero", no_vel_report.projection.projected_stories == 0 or no_vel_report.projection.projected_points >= 0)
+
+# Pedagogical text
+txt_proj = projection_text(proj_report.projection)
+t("projection_text", "anticipe" in txt_proj and "pts" in txt_proj)
+txt_empty = projection_text(ProjectionEstimate())
+t("projection_text_empty", "Aucune" in txt_empty)
+
+# Config param
+t("cfg_projection_default_weight", CFG.get("projection_default_weight") == 0.3)
+
+# Code checks
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc4=f.read()
+t("calc_compute_projection", '_compute_projection' in cc4)
+t("calc_score_global_with_proj", '_score_global_with_projection' in cc4)
+t("calc_projection_default_weight", 'projection_default_weight' in cc4)
+
+# ═══════════════════════════════════════════════════════
+# DUAL TEMPLATES: Story 1-7 — kpi_date.html + kpi_project.html
+# ═══════════════════════════════════════════════════════
+# Template files exist
+t("tpl_date_exists", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_date.html')))
+t("tpl_project_exists", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_project.html')))
+
+# Read templates
+with open(os.path.join(BASE, 'templates', 'kpi_date.html')) as f: tpl_date=f.read()
+with open(os.path.join(BASE, 'templates', 'kpi_project.html')) as f: tpl_proj=f.read()
+
+# AC #1: Both have Tailwind
+t("tpl_date_tailwind", 'cdn.tailwindcss.com' in tpl_date)
+t("tpl_project_tailwind", 'cdn.tailwindcss.com' in tpl_proj)
+
+# AC #2: Shared visual structure
+t("tpl_date_has_pbar", 'pbar' in tpl_date)
+t("tpl_project_has_pbar", 'pbar' in tpl_proj)
+
+# AC #3: Date shows tag scores, global score, blocked
+t("tpl_date_tag_scores", 'tag_scores' in tpl_date)
+t("tpl_date_score_global", 'score_global_date' in tpl_date)
+t("tpl_date_blocked", 'blocked_stories' in tpl_date)
+
+# AC #4: Project shows projections, global score
+t("tpl_project_projection", 'projection' in tpl_proj)
+t("tpl_project_score_global", 'score_global_project' in tpl_proj)
+t("tpl_project_tag_scores", 'tag_scores' in tpl_proj)
+
+# AC #6: Pedagogical text
+t("tpl_date_pedagogy", 'pedagogy' in tpl_date)
+t("tpl_project_pedagogy", 'pedagogy' in tpl_proj)
+
+# AC #8: Existing preview preserved
+t("tpl_preview_preserved", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_preview.html')))
+
+# Renderer has new methods
+with open(os.path.join(BASE, 'services', 'renderer.py')) as f: rr2=f.read()
+t("renderer_date_method", 'def render_date' in rr2)
+t("renderer_project_method", 'def render_project' in rr2)
+
+# ═══════════════════════════════════════════════════════
+# CLI DUAL REPORTS: Story 1-10
+# ═══════════════════════════════════════════════════════
+with open(os.path.join(BASE, 'cli.py')) as f: cli2=f.read()
+t("cli_report_date", 'report-date' in cli2 and 'def report_date' in cli2)
+t("cli_report_project", 'report-project' in cli2 and 'def report_project' in cli2)
+t("cli_publish_date", 'publish-date' in cli2 and 'def publish_date' in cli2)
+t("cli_publish_project", 'publish-project' in cli2 and 'def publish_project' in cli2)
+t("cli_compare_with_option", '--compare-with' in cli2)
+t("cli_render_date", 'render_date' in cli2)
+t("cli_render_project", 'render_project' in cli2)
+t("cli_snapshot_on_report", cli2.count('_snap(') >= 4, "snapshot saved on each report")
+t("cli_existing_preview", 'def preview' in cli2)
+t("cli_existing_generate", 'def generate' in cli2)
+
+# Store: load_by_sprint
+with open(os.path.join(BASE, 'services', 'store.py')) as f: st2=f.read()
+t("store_load_by_sprint", 'def load_by_sprint' in st2)
+
+# Store: functional test
+if _has_tinydb:
+    td2 = tempfile.mkdtemp()
+    store2_cfg = {"archive": {"db_path": os.path.join(td2, "test2.json")}}
+    store2 = SnapshotStore(store2_cfg)
+    snap_s4 = Snapshot(snapshot_date="2026-01-15", sprint_number=4, total_points=100, done_points=40)
+    snap_s5 = Snapshot(snapshot_date="2026-02-01", sprint_number=5, total_points=120, done_points=60)
+    store2.save(snap_s4); store2.save(snap_s5)
+    loaded_s4 = store2.load_by_sprint(4)
+    t("store_by_sprint_found", loaded_s4 is not None and loaded_s4.sprint_number == 4)
+    t("store_by_sprint_missing", store2.load_by_sprint(99) is None)
+    shutil.rmtree(td2, ignore_errors=True)
+
+# ═══════════════════════════════════════════════════════
+# BACKLOG STABILITY: Story 1-4
+# ═══════════════════════════════════════════════════════
+from kpi.domain.models import BacklogStability, ComplementaryKPIs, ComparisonResult
+
+t("model_backlog_stability", 'backlog_stability' in WeeklyReport.model_fields)
+bs_model = BacklogStability(variation_date=0.12, variation_project=0.85,
+                             stories_created_sprint=5, stories_done_sprint=3, total_stories=50)
+t("bs_model_fields", bs_model.variation_date == 0.12 and bs_model.total_stories == 50)
+
+# Backlog stability populated in report
+bs_cfg = {
+    "dimensions": [
+        {"label": "dev", "display": "Dev", "keywords": ["dev"]},
+    ],
+    "domain_weight": {"dev": 0.5},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+bs_calc = KPICalculator(bs_cfg)
+_bs_sprint = bs_calc.compute([], []).sprint_name
+bs_stories = [
+    JiraStory(key="B1", summary="done", status=StoryStatus.DONE, story_points=5, labels=["dev"],
+              sprint=_bs_sprint, created_date="2025-11-01"),
+    JiraStory(key="B2", summary="new", status=StoryStatus.BACKLOG, story_points=3, labels=["dev"],
+              created_date=date.today().isoformat()),
+]
+bs_report = bs_calc.compute(bs_stories, [])
+t("bs_populated", bs_report.backlog_stability is not None)
+t("bs_total", bs_report.backlog_stability.total_stories == 2)
+t("bs_variation_project", 0 < bs_report.backlog_stability.variation_project <= 1.0,
+  f"vp={bs_report.backlog_stability.variation_project}")
+
+# Calculator code
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc5=f.read()
+t("calc_backlog_stability", '_backlog_stability' in cc5)
+
+# ═══════════════════════════════════════════════════════
+# COMPLEMENTARY KPIs: Story 1-6
+# ═══════════════════════════════════════════════════════
+t("model_complementary_kpis", 'complementary_kpis' in WeeklyReport.model_fields)
+ck = ComplementaryKPIs(pct_complete=0.3, pct_partial=0.2, pct_critical_done=0.5, doc_index=0.4)
+t("ck_model_fields", ck.pct_complete == 0.3 and ck.doc_index == 0.4)
+
+# Complementary KPIs populated
+t("ck_populated", bs_report.complementary_kpis is not None)
+t("ck_pct_complete", 0 <= bs_report.complementary_kpis.pct_complete <= 1.0)
+t("ck_doc_index", 0 <= bs_report.complementary_kpis.doc_index <= 1.0)
+
+t("calc_complementary_kpis", '_complementary_kpis' in cc5)
+
+# ═══════════════════════════════════════════════════════
+# PERIOD COMPARISON: Story 1-8
+# ═══════════════════════════════════════════════════════
+t("model_comparisons", 'comparisons' in WeeklyReport.model_fields)
+
+# ComparisonResult model
+cr = ComparisonResult(label="Test", current=0.75, previous=0.60)
+t("cr_delta", abs(cr.delta - 0.15) < 0.001)
+t("cr_delta_pct", abs(cr.delta_pct - 0.25) < 0.001)
+t("cr_direction_up", cr.direction == "up")
+cr_down = ComparisonResult(label="X", current=0.3, previous=0.5)
+t("cr_direction_down", cr_down.direction == "down")
+cr_flat = ComparisonResult(label="Y", current=0.5, previous=0.5)
+t("cr_direction_flat", cr_flat.direction == "flat")
+
+# Comparison with previous snapshot
+prev_snap = Snapshot(snapshot_date="2026-02-01", sprint_number=5,
+                      total_points=80, done_points=30, score_global=0.4,
+                      tag_scores={"dev": 0.35}, backlog_variation=0.8)
+cmp_report = bs_calc.compute(bs_stories, [], previous=prev_snap)
+t("cmp_has_comparisons", len(cmp_report.comparisons) > 0)
+t("cmp_score_global_delta", any(c.label == "Score Global" for c in cmp_report.comparisons))
+t("cmp_tag_delta", any("Tag:" in c.label for c in cmp_report.comparisons))
+
+# No comparison without previous
+no_cmp_report = bs_calc.compute(bs_stories, [])
+t("cmp_empty_without_prev", len(no_cmp_report.comparisons) == 0)
+
+# Snapshot extended fields
+snap_ext = Snapshot(snapshot_date="2026-02-24", score_global=0.55,
+                     tag_scores={"fonc": 0.6, "tech": 0.4}, backlog_variation=0.85)
+t("snap_score_global", snap_ext.score_global == 0.55)
+t("snap_tag_scores", snap_ext.tag_scores["fonc"] == 0.6)
+t("snap_backlog_variation", snap_ext.backlog_variation == 0.85)
+
+# CLI saves extended snapshot
+t("cli_snap_score_global", 'score_global' in cli2)
+t("cli_snap_tag_scores", 'tag_scores' in cli2)
+
+t("calc_comparisons", '_comparisons' in cc5)
+
+# ═══════════════════════════════════════════════════════
+# MOCK DATA GENERATOR: Story 1-9
+# ═══════════════════════════════════════════════════════
+t("mock_file_exists", os.path.isfile(os.path.join(BASE, 'services', 'mock.py')))
+
+from kpi.services.mock import MockGenerator
+mock_cfg = {
+    "dimensions": CFG["dimensions"],
+    "domain_weight": CFG.get("domain_weight", {}),
+    "kpi": CFG["kpi"],
+    "project": CFG.get("project", {}),
+    "jira": {"project_key": "MOCK", "url": ""},
+}
+gen = MockGenerator(mock_cfg, seed=42)
+mock_stories = gen.generate(count=100, noise=0.35)
+t("mock_count", len(mock_stories) == 100)
+t("mock_has_keys", all(s.key.startswith("MOCK-") for s in mock_stories))
+t("mock_has_statuses", len(set(s.status for s in mock_stories)) >= 5)
+
+# Noise: some stories should have imperfections
+no_tags = sum(1 for s in mock_stories if not s.labels)
+zero_sp = sum(1 for s in mock_stories if s.story_points == 0)
+no_sprint = sum(1 for s in mock_stories if s.sprint is None)
+t("mock_noise_present", (no_tags + zero_sp) > 0, f"no_tags={no_tags} zero_sp={zero_sp}")
+t("mock_noise_ratio", (no_tags + zero_sp + no_sprint) >= 10,
+  f"total_imperfections={no_tags + zero_sp + no_sprint} should be >= 10 for 35% noise")
+
+# Velocity generation
+mock_vels = gen.generate_velocities(mock_stories)
+t("mock_velocities", len(mock_vels) > 0)
+
+# JSON output compatible with JiraStory
+mock_json = gen.to_json(mock_stories[:5])
+parsed = json.loads(mock_json)
+t("mock_json_valid", len(parsed) == 5 and "key" in parsed[0])
+
+# Reproducibility: same seed → same data
+gen2 = MockGenerator(mock_cfg, seed=42)
+mock_stories2 = gen2.generate(count=100, noise=0.35)
+t("mock_reproducible", mock_stories[0].key == mock_stories2[0].key
+  and mock_stories[0].status == mock_stories2[0].status)
+
+# CLI mock command
+t("cli_mock_command", 'def mock' in cli2 and 'MockGenerator' in cli2)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

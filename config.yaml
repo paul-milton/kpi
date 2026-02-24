@@ -44,6 +44,8 @@ unestimated_default_points: 3
 unestimated_max_ratio: 0.5
 # Marge d'erreur sur le projeté reste à faire (+15%)
 projection_margin: 0.15
+# Poids par défaut pour les US projetées futures (0.0-1.0)
+projection_default_weight: 0.3
 
 archive:
   db_path: "data/kpi.json"

@@ -123,6 +123,21 @@ class DimensionKPI(BaseModel):
         return int(self.completion_ratio * 100)
 
 
+class TagScore(BaseModel):
+    """Structural advancement score per dimension tag."""
+    label: str
+    display: str = ""
+    score: float = 0.0              # 0.0-1.0 weighted structural score
+    story_count: int = 0
+    total_points: int = 0
+    weighted_sum: float = 0.0       # numerator: Σ(pts × status_w × sprint_w)
+    children: list[TagScore] = Field(default_factory=list)
+
+    @property
+    def score_percent(self) -> int:
+        return int(self.score * 100)
+
+
 class SprintInfo(BaseModel):
     number: int
     name: str = ""
@@ -183,6 +198,53 @@ class RAFEstimation(BaseModel):
     unestimated_padding: int = 0        # count × default_points (capped)
 
 
+class ProjectionEstimate(BaseModel):
+    """Projected future stories for global report."""
+    projected_stories: int = 0
+    projected_points: int = 0
+    default_weight: float = 0.3
+    distribution_by_tag: dict[str, int] = Field(default_factory=dict)  # tag → projected pts
+
+
+class BacklogStability(BaseModel):
+    """Scope evolution indicator (Story 1-4)."""
+    variation_date: float = 0.0         # (created_this_sprint - done_this_sprint) / total
+    variation_project: float = 0.0      # total_created / estimated_final
+    stories_created_sprint: int = 0
+    stories_done_sprint: int = 0
+    total_stories: int = 0
+    estimated_final_stories: int = 0
+
+
+class ComplementaryKPIs(BaseModel):
+    """Additional quality KPIs (Story 1-6)."""
+    pct_complete: float = 0.0           # stories fully tagged + Done / total
+    pct_partial: float = 0.0            # stories >=50% tags + active / total
+    pct_critical_done: float = 0.0      # high-priority Done / total high-priority
+    doc_index: float = 0.0              # avg score of documentation + test tags
+
+
+class ComparisonResult(BaseModel):
+    """Delta between current and previous period (Story 1-8)."""
+    label: str
+    current: float = 0.0
+    previous: float = 0.0
+
+    @property
+    def delta(self) -> float:
+        return self.current - self.previous
+
+    @property
+    def delta_pct(self) -> float:
+        return self.delta / self.previous if self.previous else 0.0
+
+    @property
+    def direction(self) -> str:
+        if self.delta > 0.001: return "up"
+        if self.delta < -0.001: return "down"
+        return "flat"
+
+
 class TagSuggestion(BaseModel):
     story_key: str
     story_summary: str = ""
@@ -202,6 +264,9 @@ class Snapshot(BaseModel):
     blocked_count: int = 0
     completion_ratio: float = 0.0
     avg_velocity_per_week: float = 0.0
+    score_global: float = 0.0
+    tag_scores: dict[str, float] = Field(default_factory=dict)  # label → score
+    backlog_variation: float = 0.0
 
 
 class WeeklyReport(BaseModel):
@@ -229,5 +294,12 @@ class WeeklyReport(BaseModel):
     project_start: str = ""
     project_end: str = ""
     sprint_duration_weeks: int = 3
+    tag_scores: list[TagScore] = Field(default_factory=list)
+    score_global_date: float = 0.0       # weighted avg of tag scores (current/past sprints only)
+    score_global_project: float = 0.0    # weighted avg of tag scores (all stories, smoothed)
+    projection: ProjectionEstimate | None = None
+    backlog_stability: BacklogStability | None = None
+    complementary_kpis: ComplementaryKPIs | None = None
+    comparisons: list[ComparisonResult] = Field(default_factory=list)
     all_stories: list[JiraStory] = Field(default_factory=list)
     sprint_timeline: list[SprintInfo] = Field(default_factory=list)

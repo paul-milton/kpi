@@ -15,10 +15,10 @@ from typing import Any
 import structlog
 from kpi.domain.dimensions import parse_dimensions
 from kpi.domain.models import (
-    ACTIVE_STATUSES, COMPLETED_STATUSES,
-    DimensionKPI, DimensionNode, JiraStory, RAFEstimation, Snapshot,
-    SprintVelocity, StatusBreakdown, StoryStatus, Variation,
-    WeatherIcon, WeeklyReport,
+    ACTIVE_STATUSES, COMPLETED_STATUSES, BacklogStability, ComplementaryKPIs,
+    ComparisonResult, DimensionKPI, DimensionNode, JiraStory, ProjectionEstimate,
+    RAFEstimation, Snapshot, SprintVelocity, StatusBreakdown, StoryStatus,
+    TagScore, Variation, WeatherIcon, WeeklyReport,
 )
 from kpi.services.dates import build_sprint_calendar, find_current_sprint, weeks_elapsed, weeks_remaining
 
@@ -29,6 +29,19 @@ PRORATA_WEIGHTS = {
     StoryStatus.IN_PROGRESS: 0.25,
     StoryStatus.REVIEW: 0.75,
     StoryStatus.TESTING: 0.50,
+}
+
+# Tag scoring: structural advancement weights per status (AC #2)
+TAG_STATUS_WEIGHTS = {
+    StoryStatus.DONE: 1.0,
+    StoryStatus.DELIVERED: 1.0,
+    StoryStatus.IN_PROGRESS: 0.5,
+    StoryStatus.REVIEW: 0.75,
+    StoryStatus.TESTING: 0.65,
+    StoryStatus.TODO: 0.2,
+    StoryStatus.BACKLOG: 0.1,
+    StoryStatus.SPECIFICATION: 0.15,
+    StoryStatus.BLOCKED: 0.1,
 }
 
 
@@ -66,6 +79,7 @@ class KPICalculator:
         self._unest_default = cfg.get("unestimated_default_points", 3)
         self._unest_max_ratio = cfg.get("unestimated_max_ratio", 0.5)
         self._projection_margin = cfg.get("projection_margin", 0.15)
+        self._projection_default_weight = cfg.get("projection_default_weight", 0.3)
 
     def compute(self, stories: list[JiraStory], velocities: list[SprintVelocity],
                 unidentified: list[JiraStory] | None = None,
@@ -115,6 +129,34 @@ class KPICalculator:
 
         variations = self._vars(total_pts, done_pts, len(blocked), previous)
 
+        # Tag scores: structural advancement per dimension (Story 1-1)
+        cur_sprint_name = f"Sprint {snum}"
+        tag_scores = [self._tag_score(n, live, cur_sprint_name) for n in self._dims]
+
+        # Score_Global: weighted average of top-level tag scores (Story 1-3)
+        # "À date": only stories in current or past sprints
+        past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
+        date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
+        tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
+        score_global_date = self._score_global(tag_scores_date)
+
+        # Future projection (Story 1-5): projected stories for global report
+        projection = self._compute_projection(live, raf, tag_scores)
+
+        # "Global projet": all stories + projected future (smoothed: never < 50% of date score)
+        score_global_project_raw = self._score_global_with_projection(tag_scores, projection)
+        score_global_project = max(score_global_project_raw, score_global_date * 0.5)
+
+        # Backlog stability (Story 1-4)
+        backlog_stability = self._backlog_stability(live, cur_sprint, raf)
+
+        # Complementary KPIs (Story 1-6)
+        complementary_kpis = self._complementary_kpis(live, tag_scores)
+
+        # Period comparison (Story 1-8)
+        comparisons = self._comparisons(
+            score_global_project, tag_scores, backlog_stability, complementary_kpis, previous)
+
         return WeeklyReport(
             generated_at=now, week_number=now.isocalendar()[1], year=now.year,
             sprint_name=f"Sprint {snum}", sprint_number=snum, sprint_week=sweek,
@@ -129,6 +171,13 @@ class KPICalculator:
             project_start=self._pcfg.get("start_date", "2025-10-01"),
             project_end=self._pcfg.get("end_date", "2026-09-30"),
             sprint_duration_weeks=self._sw,
+            tag_scores=tag_scores,
+            score_global_date=round(score_global_date, 4),
+            score_global_project=round(score_global_project, 4),
+            projection=projection,
+            backlog_stability=backlog_stability,
+            complementary_kpis=complementary_kpis,
+            comparisons=comparisons,
             all_stories=live, sprint_timeline=timeline,
         )
 
@@ -268,6 +317,253 @@ class KPICalculator:
         if r >= w["cloudy_threshold"]: return WeatherIcon.CLOUDY
         if r >= w["rainy_threshold"]: return WeatherIcon.RAINY
         return WeatherIcon.STORMY
+
+    def _tag_score(self, node: DimensionNode, stories: list[JiraStory],
+                   current_sprint: str) -> TagScore:
+        """Compute structural advancement score for a dimension tag (AC #1-4)."""
+        direct = [s for s in stories if node.label in s.labels]
+
+        # Recurse into children first (AC #4)
+        child_scores = [self._tag_score(c, stories, current_sprint) for c in node.children]
+
+        # Collect direct stories not already counted by children
+        child_keys = set()
+        for cs in child_scores:
+            child_keys.update(self._tag_score_keys(cs, stories))
+        extra = [s for s in direct if s.key not in child_keys]
+
+        # Compute weighted sum for direct/extra stories
+        weighted_sum = 0.0
+        total_pts = 0
+        story_count = 0
+        for s in extra:
+            pts = max(s.story_points, 1)  # count 0-SP stories as 1 pt for scoring
+            sw = TAG_STATUS_WEIGHTS.get(s.status, 0.0)
+            # Sprint weight (AC #3)
+            if s.sprint and s.sprint == current_sprint:
+                spw = 1.0
+            elif s.status in ACTIVE_STATUSES:
+                spw = 0.5
+            else:
+                spw = 0.05
+            weighted_sum += pts * sw * spw
+            total_pts += pts
+            story_count += 1
+
+        # Aggregate children weighted sums
+        for cs in child_scores:
+            weighted_sum += cs.weighted_sum
+            total_pts += cs.total_points
+            story_count += cs.story_count
+
+        score = weighted_sum / total_pts if total_pts > 0 else 0.0
+
+        return TagScore(
+            label=node.label, display=node.display,
+            score=score, story_count=story_count,
+            total_points=total_pts, weighted_sum=weighted_sum,
+            children=child_scores,
+        )
+
+    def _tag_score_keys(self, ts: TagScore, stories: list[JiraStory]) -> set[str]:
+        """Collect story keys covered by a TagScore (for dedup)."""
+        keys = {s.key for s in stories if ts.label in s.labels}
+        for c in ts.children:
+            keys.update(self._tag_score_keys(c, stories))
+        return keys
+
+    def _backlog_stability(self, stories: list[JiraStory],
+                           cur_sprint: any, raf: RAFEstimation | None) -> BacklogStability:
+        """Compute scope evolution indicator (Story 1-4)."""
+        total = len(stories)
+        if not total:
+            return BacklogStability()
+
+        # Stories created this sprint (by created_date within sprint dates)
+        created_sprint = 0
+        done_sprint = 0
+        if cur_sprint and cur_sprint.start_date:
+            sp_start = cur_sprint.start_date
+            sp_end = cur_sprint.end_date or date.today().isoformat()
+            for s in stories:
+                if s.created_date and sp_start <= s.created_date[:10] <= sp_end:
+                    created_sprint += 1
+                if s.status in COMPLETED_STATUSES and s.sprint and cur_sprint.name in s.sprint:
+                    done_sprint += 1
+
+        variation_date = (created_sprint - done_sprint) / total if total else 0.0
+
+        # Estimated final stories from velocity projection
+        est_final = total
+        if raf and raf.avg_velocity_per_week > 0:
+            sprints_left = max(raf.weeks_remaining // self._sw, 0)
+            avg_stories_per_sprint = max(total / max(raf.sprints_done, 1), 1)
+            est_final = total + int(avg_stories_per_sprint * sprints_left * 0.3)  # 30% new stories
+        variation_project = total / est_final if est_final else 0.0
+
+        return BacklogStability(
+            variation_date=round(variation_date, 4),
+            variation_project=round(variation_project, 4),
+            stories_created_sprint=created_sprint,
+            stories_done_sprint=done_sprint,
+            total_stories=total,
+            estimated_final_stories=est_final,
+        )
+
+    def _complementary_kpis(self, stories: list[JiraStory],
+                             tag_scores: list[TagScore]) -> ComplementaryKPIs:
+        """Compute additional quality KPIs (Story 1-6)."""
+        total = len(stories)
+        if not total:
+            return ComplementaryKPIs()
+
+        expected_top = len(self._dims)  # number of top-level dimensions
+
+        # pct_complete: fully tagged + Done
+        complete = sum(1 for s in stories
+                       if s.status in COMPLETED_STATUSES
+                       and len(s.labels) >= expected_top)
+        pct_complete = complete / total
+
+        # pct_partial: >=50% tags + active
+        partial = sum(1 for s in stories
+                      if s.status in ACTIVE_STATUSES
+                      and len(s.labels) >= max(expected_top // 2, 1))
+        pct_partial = partial / total
+
+        # pct_critical_done: not available without priority field, use 0-SP as proxy
+        # Stories with > avg points considered "critical"
+        avg_pts = sum(s.story_points for s in stories) / total if total else 0
+        critical = [s for s in stories if s.story_points > avg_pts * 1.5]
+        crit_done = sum(1 for s in critical if s.status in COMPLETED_STATUSES)
+        pct_critical = crit_done / len(critical) if critical else 0.0
+
+        # doc_index: average score of documentation-related tags
+        doc_labels = {"documentation", "tests-fonctionnels", "test-fonctionnel", "qualite"}
+        doc_scores = []
+        def _find_doc(scores):
+            for ts in scores:
+                if ts.label in doc_labels and ts.total_points > 0:
+                    doc_scores.append(ts.score)
+                _find_doc(ts.children)
+        _find_doc(tag_scores)
+        doc_index = sum(doc_scores) / len(doc_scores) if doc_scores else 0.0
+
+        return ComplementaryKPIs(
+            pct_complete=round(pct_complete, 4),
+            pct_partial=round(pct_partial, 4),
+            pct_critical_done=round(pct_critical, 4),
+            doc_index=round(doc_index, 4),
+        )
+
+    def _comparisons(self, score_global: float, tag_scores: list[TagScore],
+                      backlog: BacklogStability | None, comp_kpis: ComplementaryKPIs | None,
+                      previous: Snapshot | None) -> list[ComparisonResult]:
+        """Compute deltas vs previous snapshot (Story 1-8)."""
+        if not previous:
+            return []
+        results = []
+        # Score_Global
+        results.append(ComparisonResult(
+            label="Score Global", current=round(score_global, 4),
+            previous=round(previous.score_global, 4)))
+        # Per-tag scores
+        for ts in tag_scores:
+            prev_score = previous.tag_scores.get(ts.label, 0.0)
+            if ts.total_points > 0 or prev_score > 0:
+                results.append(ComparisonResult(
+                    label=f"Tag: {ts.label}", current=round(ts.score, 4),
+                    previous=round(prev_score, 4)))
+        # Backlog stability
+        if backlog:
+            results.append(ComparisonResult(
+                label="Backlog Variation", current=round(backlog.variation_project, 4),
+                previous=round(previous.backlog_variation, 4)))
+        # Complementary KPIs
+        if comp_kpis:
+            results.append(ComparisonResult(
+                label="% Complete", current=round(comp_kpis.pct_complete, 4),
+                previous=0.0))
+            results.append(ComparisonResult(
+                label="Doc Index", current=round(comp_kpis.doc_index, 4),
+                previous=0.0))
+        return results
+
+    def _score_global(self, tag_scores: list[TagScore]) -> float:
+        """Weighted average of top-level tag scores using domain_weight (AC #1)."""
+        numerator = 0.0
+        denominator = 0.0
+        for ts in tag_scores:
+            w = self._dw.get(ts.label, 0.0)
+            if w > 0 and ts.total_points > 0:
+                numerator += ts.score * w
+                denominator += w
+        return numerator / denominator if denominator > 0 else 0.0
+
+    def _compute_projection(self, stories: list[JiraStory], raf: RAFEstimation | None,
+                            tag_scores: list[TagScore]) -> ProjectionEstimate:
+        """Project future stories based on velocity (Story 1-5 AC #1,#2,#3)."""
+        if not raf or raf.avg_velocity_per_week <= 0:
+            return ProjectionEstimate(default_weight=self._projection_default_weight)
+
+        sprints_remaining = max(raf.weeks_remaining // self._sw, 0)
+        vel_per_sprint = raf.avg_velocity_per_week * self._sw
+        projected_pts = int(vel_per_sprint * sprints_remaining)
+        # Estimate story count from avg points per story
+        total_stories = len(stories)
+        total_pts = sum(s.story_points for s in stories) or 1
+        avg_pts_per_story = total_pts / max(total_stories, 1)
+        projected_stories = int(projected_pts / max(avg_pts_per_story, 1))
+
+        # Distribute by current tag ratio
+        dist: dict[str, int] = {}
+        for ts in tag_scores:
+            if ts.total_points > 0 and total_pts > 0:
+                ratio = ts.total_points / total_pts
+                dist[ts.label] = max(int(projected_pts * ratio), 0)
+
+        return ProjectionEstimate(
+            projected_stories=projected_stories,
+            projected_points=projected_pts,
+            default_weight=self._projection_default_weight,
+            distribution_by_tag=dist,
+        )
+
+    def _score_global_with_projection(self, tag_scores: list[TagScore],
+                                       projection: ProjectionEstimate) -> float:
+        """Score_Global projet including projected future stories (AC #4)."""
+        numerator = 0.0
+        denominator = 0.0
+        pw = projection.default_weight if projection else 0.3
+        for ts in tag_scores:
+            w = self._dw.get(ts.label, 0.0)
+            if w <= 0:
+                continue
+            proj_pts = projection.distribution_by_tag.get(ts.label, 0) if projection else 0
+            # Existing weighted_sum + projected pts × default_weight
+            total_pts = ts.total_points + proj_pts
+            if total_pts > 0:
+                adj_score = (ts.weighted_sum + proj_pts * pw) / total_pts
+                numerator += adj_score * w
+                denominator += w
+        return numerator / denominator if denominator > 0 else 0.0
+
+
+def score_global_text(score: float, mode: str = "date") -> str:
+    """Pedagogical text for Score_Global (Story 1-3 AC #6)."""
+    pct = int(score * 100)
+    if mode == "date":
+        return f"Score global à date {pct}% — le projet est à {pct}% de complétude structurelle sur les sprints réalisés."
+    return f"Score global projet {pct}% — le projet est à {pct}% de complétude structurelle, toutes US confondues."
+
+
+def projection_text(projection: ProjectionEstimate) -> str:
+    """Pedagogical text for future projection (Story 1-5 AC #5)."""
+    if not projection or projection.projected_stories == 0:
+        return "Aucune projection — vélocité insuffisante pour estimer les US futures."
+    return (f"On anticipe {projection.projected_stories} US ({projection.projected_points} pts) "
+            f"dans les prochains mois, sur la base de la vélocité passée, "
+            f"pour avoir une estimation crédible de l'avancement projet futur.")
 
 
 def _bkdn(stories):

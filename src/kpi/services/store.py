@@ -23,6 +23,12 @@ class SnapshotStore:
         r = self._tbl.search(Query().snapshot_date == dt)
         return Snapshot(**r[0]) if r else None
 
+    def load_by_sprint(self, sprint_number: int) -> Snapshot | None:
+        r = self._tbl.search(Query().sprint_number == sprint_number)
+        if not r: return None
+        r.sort(key=lambda d: d["snapshot_date"], reverse=True)
+        return Snapshot(**r[0])
+
     def load_previous_sprint(self, current: int) -> Snapshot | None:
         r = self._tbl.search(Query().sprint_number < current)
         if not r: return None
