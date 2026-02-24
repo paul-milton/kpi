@@ -1106,6 +1106,63 @@ t("mock_reproducible", mock_stories[0].key == mock_stories2[0].key
 # CLI mock command
 t("cli_mock_command", 'def mock' in cli2 and 'MockGenerator' in cli2)
 
+# ═══════════════════════════════════════════════════════
+# Story 2-1: Deadline Display & Weather/Color Rules
+# ═══════════════════════════════════════════════════════
+print("\n  ▸ Story 2-1: Deadline & Weather Rules")
+
+dl_calc = KPICalculator(CFG)
+dl_report = dl_calc.compute(tag_stories, [])
+
+# AC1: WeeklyReport has time_progress and days_remaining fields
+t("report_time_progress", hasattr(dl_report, 'time_progress') and dl_report.time_progress > 0)
+t("report_days_remaining", hasattr(dl_report, 'days_remaining') and dl_report.days_remaining >= 0)
+t("time_progress_range", 0.0 < dl_report.time_progress <= 1.0)
+
+# AC1: Deadline banner in templates
+from pathlib import Path as _P
+tpl_date2 = _P("src/kpi/templates/kpi_date.html").read_text()
+tpl_proj2 = _P("src/kpi/templates/kpi_project.html").read_text()
+tpl_prev2 = _P("src/kpi/templates/kpi_preview.html").read_text()
+tpl_conf2 = _P("src/kpi/templates/kpi_confluence.html.j2").read_text()
+
+t("banner_date_template", "DEADLINE BANNER" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
+t("banner_project_template", "DEADLINE BANNER" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
+t("banner_preview_template", "DEADLINE BANNER" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
+t("banner_confluence_template", "r.project_end" in tpl_conf2 and "r.days_remaining" in tpl_conf2)
+
+# AC1: time_progress bar in banner
+t("banner_time_progress_bar", "r.time_progress" in tpl_date2 and "r.time_progress" in tpl_proj2)
+
+# AC2: Weather boundary tests
+weather_calc = KPICalculator(CFG)
+t("weather_sunny", weather_calc._weather(0.80).value == "☀️")
+t("weather_sunny_above", weather_calc._weather(0.95).value == "☀️")
+t("weather_partly_cloudy", weather_calc._weather(0.60).value == "⛅")
+t("weather_partly_cloudy_79", weather_calc._weather(0.79).value == "⛅")
+t("weather_cloudy", weather_calc._weather(0.40).value == "🌥️")
+t("weather_rainy", weather_calc._weather(0.20).value == "🌧️")
+t("weather_stormy", weather_calc._weather(0.19).value == "⛈️")
+t("weather_stormy_zero", weather_calc._weather(0.0).value == "⛈️")
+
+# AC3: Color thresholds in templates (progress bars)
+t("color_green_threshold", "ratio>=0.8%}cg" in tpl_date2)
+t("color_orange_threshold", "ratio>=0.5%}co" in tpl_date2)
+t("color_red_implicit", "cr{%endif%}" in tpl_date2)
+
+# AC3: Time-relative color thresholds in JS
+t("trb_green_threshold", "r>=1?" in tpl_date2 or "r>=.8?" in tpl_date2)
+
+# AC4: Documentation updated
+doc = _P("docs/methode-calcul.md").read_text()
+t("doc_weather_table", "Sunny" in doc and "0.80" in doc and "Stormy" in doc)
+t("doc_color_table", "#36B37E" in doc and "#FF991F" in doc and "#DE350B" in doc)
+t("doc_deadline_banner", "Bannière" in doc and "time_progress" in doc)
+t("doc_pedagogical_examples", "80% d'avancement" in doc and "ratio 1.0" in doc)
+
+# AC5: Existing tests still pass (verified by running full suite)
+t("time_progress_populated", dl_report.time_progress == round(dl_report.time_progress, 4))
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

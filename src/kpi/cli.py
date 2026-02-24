@@ -23,9 +23,11 @@ logger = structlog.get_logger()
 @click.pass_context
 def main(ctx, config, log_level):
     """KPI Generator v7 — Jira → HTML/Confluence reports."""
+    import sys
     structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(getattr(logging, log_level.upper(), logging.INFO)))
     ctx.ensure_object(dict)
-    ctx.obj["cfg"] = load_config(Path(config) if config else None)
+    offline = len(sys.argv) > 1 and sys.argv[1] == "demo"
+    ctx.obj["cfg"] = load_config(Path(config) if config else None, offline=offline)
     ctx.obj["log_level"] = log_level.upper()
 
 
@@ -339,5 +341,40 @@ def mock(ctx, stories, noise, seed, output):
     click.echo(f"  🔧 ~{noisy} imperfections")
     click.echo(f"  💾 {p}\n")
 
+
+@main.command()
+@click.option("--stories", default=300, help="Number of mock stories")
+@click.option("--noise", default=0.35, help="Noise ratio (0.0-1.0)")
+@click.option("--seed", default=42, help="Random seed")
+@click.pass_context
+def demo(ctx, stories, noise, seed):
+    """Generate mock data and produce both HTML reports (no Jira needed)."""
+    from kpi.services.mock import MockGenerator
+    cfg = ctx.obj["cfg"]
+    gen = MockGenerator(cfg, seed=seed)
+    data = gen.generate(count=stories, noise=noise)
+    vels = gen.generate_velocities(data)
+    untag = [s for s in data if not s.labels]
+
+    calc = KPICalculator(cfg); store = SnapshotStore(cfg)
+    sn = cfg.get("project", {}).get("current_sprint", 1)
+    prev = store.load_previous_sprint(sn)
+    r = calc.compute(data, vels, untag, prev)
+
+    click.echo(f"\n  🎲 {len(data)} mock stories (seed={seed}, noise={noise})")
+    _show(r)
+
+    rr = ReportRenderer()
+    p1 = Path("kpi_date_demo.html")
+    p1.write_text(rr.render_date(r), encoding="utf-8")
+    p2 = Path("kpi_project_demo.html")
+    p2.write_text(rr.render_project(r), encoding="utf-8")
+    click.echo(f"  📄 {p1}")
+    click.echo(f"  📄 {p2}")
+    try:
+        import webbrowser
+        webbrowser.open(p1.resolve().as_uri())
+        webbrowser.open(p2.resolve().as_uri())
+    except: pass
 
 if __name__ == "__main__": main()

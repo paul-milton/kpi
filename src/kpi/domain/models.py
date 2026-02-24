@@ -293,6 +293,8 @@ class WeeklyReport(BaseModel):
     jira_base_url: str = ""
     project_start: str = ""
     project_end: str = ""
+    time_progress: float = 0.0       # % of timeline elapsed (0.0-1.0)
+    days_remaining: int = 0          # calendar days until project_end
     sprint_duration_weeks: int = 3
     tag_scores: list[TagScore] = Field(default_factory=list)
     score_global_date: float = 0.0       # weighted avg of tag scores (current/past sprints only)

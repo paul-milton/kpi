@@ -61,6 +61,13 @@ a.jk{color:#0052CC;text-decoration:none;font-weight:600}a.jk:hover{text-decorati
 <body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
 <div class="max-w-[1300px] mx-auto">
 
+{# ══════════ DEADLINE BANNER ══════════ #}
+<div class="bg-white rounded-lg shadow-sm p-3 mb-2 flex items-center justify-between text-[12px]">
+  <div><span class="font-semibold text-muted">Debut :</span> {{r.project_start}}</div>
+  <div class="flex-1 mx-4">{{ pbar(r.time_progress, w=400, h=10, fs=11) }}</div>
+  <div><span class="font-semibold {%if r.days_remaining<=30%}text-err{%elif r.days_remaining<=90%}text-warn{%else%}text-muted{%endif%}">Echeance : {{r.project_end}}</span> <span class="text-muted">({{r.days_remaining}}j)</span></div>
+</div>
+
 {# ══════════ HEADER ══════════ #}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <div class="text-center text-muted text-[11px] mb-2">Rapport A Date — Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>

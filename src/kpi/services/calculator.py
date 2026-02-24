@@ -170,6 +170,8 @@ class KPICalculator:
             jira_base_url=self._jira_url,
             project_start=self._pcfg.get("start_date", "2025-10-01"),
             project_end=self._pcfg.get("end_date", "2026-09-30"),
+            time_progress=round(time_progress, 4),
+            days_remaining=max((date.fromisoformat(self._pcfg.get("end_date", "2026-09-30")) - date.today()).days, 0),
             sprint_duration_weeks=self._sw,
             tag_scores=tag_scores,
             score_global_date=round(score_global_date, 4),

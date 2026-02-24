@@ -35,12 +35,56 @@
 - `avancement = effective_done / total_points`
 - Inclut le prorata des stories actives
 
+## Bannière Échéance
+
+Chaque rapport affiche en haut une bannière avec :
+- **Date de début** (`project.start_date`)
+- **Barre de progression temporelle** : % du temps écoulé (vert ≥80%, orange ≥50%, rouge <50%)
+- **Date d'échéance** (`project.end_date`) avec le nombre de jours restants
+- Couleur de l'échéance : rouge si ≤30j, orange si ≤90j, neutre sinon
+
+Formule : `time_progress = semaines_écoulées / (semaines_écoulées + semaines_restantes)`
+
 ## Météo temps-relative
 
-- La météo s'ajuste en fonction de l'avancement dans le temps du projet
-- `ratio_relatif = avancement / (semaines_écoulées / durée_totale_projet)`
-- 22% d'avancement à 40% du projet → ratio relatif ~55% → ⛅ vert clair
-- Seuils : ☀️ ≥80% | ⛅ ≥60% | 🌥️ ≥40% | 🌧️ ≥20% | ⛈️ <20%
+La météo s'ajuste en fonction de l'avancement **relatif au temps écoulé** du projet.
+
+**Formule :** `ratio_relatif = avancement / time_progress`
+
+**Exemple :** 22% d'avancement à 40% du projet → ratio relatif ~55% → ⛅
+
+### Règles météo (configurable dans `config.yaml` → `kpi.weather`)
+
+| Icône | Seuil (ratio_relatif) | Signification |
+|---|---|---|
+| ☀️ Sunny | ≥ 0.80 | En avance ou dans les temps |
+| ⛅ Partly Cloudy | ≥ 0.60 | Légèrement en retard |
+| 🌥️ Cloudy | ≥ 0.40 | En retard modéré |
+| 🌧️ Rainy | ≥ 0.20 | En retard significatif |
+| ⛈️ Stormy | < 0.20 | Retard critique |
+
+**Exemples pédagogiques :**
+- 80% d'avancement à 80% du projet → ratio 1.0 → ☀️ (dans les temps)
+- 30% d'avancement à 50% du projet → ratio 0.6 → ⛅ (légèrement en retard)
+- 10% d'avancement à 60% du projet → ratio 0.17 → ⛈️ (retard critique)
+
+## Couleurs des barres de progression
+
+### Barres d'avancement (% réalisé)
+
+| Couleur | Seuil | Code hex |
+|---|---|---|
+| Vert | ratio ≥ 0.80 | #36B37E |
+| Orange | ratio ≥ 0.50 | #FF991F |
+| Rouge | ratio < 0.50 | #DE350B |
+
+### Barres temps-relatif (vs objectif)
+
+| Couleur | Seuil | Code hex |
+|---|---|---|
+| Vert | time_relative ≥ 1.0 | #36B37E |
+| Orange | time_relative ≥ 0.70 | #FF991F |
+| Rouge | time_relative < 0.70 | #DE350B |
 
 ## Avancement par dimension
 
