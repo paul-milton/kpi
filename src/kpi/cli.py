@@ -24,6 +24,7 @@ def main() -> None:
         case "generate":   _generate(cfg, a)
         case "tag":        _tag(cfg, a.dry_run)
         case "migrate-labels": _migrate(cfg, a.dry_run)
+        case "purge-labels": _purge_labels(cfg, a.pattern, a.dry_run)
         case "debug-statuses": _debug(cfg)
         case "snapshot":   _snapshot(cfg, a)
         case "compare":    _compare(cfg, a.date_a, a.date_b)
@@ -60,6 +61,7 @@ def _show(r):
     if r.raf:
         print(f"  📈 {r.raf.avg_velocity_per_week} pts/sem (besoin: {r.raf.velocity_needed_per_week})")
         if r.raf.prorata_points: print(f"  ⏱️  prorata: +{r.raf.prorata_points} pts")
+        if r.raf.unestimated_count: print(f"  📝 {r.raf.unestimated_count} stories non estimées: +{r.raf.unestimated_padding} pts au RAF")
         print(f"  {'✅ en bonne voie' if r.raf.on_track else '🚨 à risque'}")
     tl = r.sprint_timeline
     if tl:
@@ -110,6 +112,23 @@ def _migrate(cfg, dry=True):
             else: j.add_labels(s.key, new)
     print(f"\n  {'DRY RUN — ' if dry else '✅ '}{lc} legacy, {rc} nouveaux\n")
 
+def _purge_labels(cfg, pattern, dry=True):
+    """Remove labels matching a pattern (e.g. ':') from all stories."""
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    total_rm = 0; affected = 0
+    for s in stories:
+        to_remove = [l for l in s.labels if pattern in l]
+        if not to_remove: continue
+        affected += 1; total_rm += len(to_remove)
+        keep = [l for l in s.labels if pattern not in l]
+        if dry:
+            print(f"  {s.key}: ✗ {to_remove}  (garde: {keep})")
+        else:
+            j.remove_labels(s.key, to_remove)
+    print(f"\n  {'DRY RUN — ' if dry else '✅ '}{total_rm} labels sur {affected} stories")
+    if dry and total_rm > 0:
+        print("  --no-dry-run pour appliquer\n")
+
 def _debug(cfg):
     j = JiraAdapter(cfg); counts = j.debug_statuses()
     rev = {n: o for o, ns in cfg["jira"]["status_mapping"].items() for n in ns}
@@ -148,6 +167,7 @@ def _args():
     g = s.add_parser("generate"); _add_dates(g)
     t = s.add_parser("tag"); t.add_argument("--no-dry-run",dest="dry_run",action="store_false",default=True)
     m = s.add_parser("migrate-labels"); m.add_argument("--no-dry-run",dest="dry_run",action="store_false",default=True)
+    pl = s.add_parser("purge-labels"); pl.add_argument("--pattern",default=":",help="Substring to match in labels (default: ':')"); pl.add_argument("--no-dry-run",dest="dry_run",action="store_false",default=True)
     s.add_parser("debug-statuses")
     sn = s.add_parser("snapshot"); _add_dates(sn)
     c = s.add_parser("compare"); c.add_argument("date_a"); c.add_argument("date_b")

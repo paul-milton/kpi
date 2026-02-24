@@ -15,20 +15,25 @@ poetry run kpi debug-statuses
 poetry run kpi migrate-labels          # dry run
 poetry run kpi migrate-labels --no-dry-run
 
-# 3. Tagger les stories
+# 3. Purger les labels contenant un caractère (ex: ':')
+poetry run kpi purge-labels                          # dry run, par défaut ':'
+poetry run kpi purge-labels --pattern "_"            # dry run, pattern '_'
+poetry run kpi purge-labels --no-dry-run             # applique
+
+# 4. Tagger les stories
 poetry run kpi tag                     # dry run
 poetry run kpi tag --no-dry-run
 
-# 4. Preview (ouvre le navigateur, ne publie pas)
+# 5. Preview (ouvre le navigateur, ne publie pas)
 poetry run kpi preview
 
-# 5. Publier sur Confluence + sauver snapshot
+# 6. Publier sur Confluence + sauver snapshot
 poetry run kpi generate
 
-# 6. Sauver un snapshot sans publier
+# 7. Sauver un snapshot sans publier
 poetry run kpi snapshot
 
-# 7. Comparer deux dates
+# 8. Comparer deux dates
 poetry run kpi compare 2026-01-15 2026-02-20
 ```
 
@@ -39,9 +44,16 @@ poetry run kpi compare 2026-01-15 2026-02-20
 - `migrate-labels` : supprime les anciens labels et retag
 
 ### 3 domaines de niveau 1
-- **Fonctionnel** : référentiels, campagnes, enquêtes, annuaire, écran d'accueil
-- **Technique** : conception (fonc/tech/UX), développement (back/front), ops, devops, qualité, perf, observabilité, sécurité
+- **Fonctionnel** : référentiels, campagnes, enquêtes, annuaire, écran d'accueil, conception fonctionnelle
+- **Technique** : conception technique, design/UX, développement (back/front), ops, devops, qualité, perf, observabilité, sécurité
 - **Organisationnel** : pilotage (tableaux de bord, suivi), habilitations, documentation (tech/utilisateur/formation)
+
+### Stories non estimées
+- Les stories à 0 SP, non planifiées (pas de sprint), et non terminées ajoutent **+13 pts** chacune au reste à faire (RAF)
+- Configurable via `unestimated_default_points` dans config.yaml
+
+### Purge de labels
+- `purge-labels` : supprime les labels contenant un pattern (`:` par défaut) sans toucher aux autres
 
 ### Multi-dimension
 - Une story peut avoir `conception-technique` ET `backend` → apparaît dans les deux branches
@@ -96,7 +108,7 @@ src/kpi/
   templates/
     kpi_preview.html                 # JS vanille, fold/unfold, story drawers
     kpi_confluence.html.j2           # Confluence storage format
-  cli.py                             # 7 commands
+  cli.py                             # 8 commands
 tests/
   test_all.py                        # 43 tests (standalone, no network)
 ```

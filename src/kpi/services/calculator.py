@@ -40,6 +40,7 @@ class KPICalculator:
         self._prorata = self._pcfg.get("prorata_current_sprint", True)
         self._sw = self._pcfg.get("sprint_duration_weeks", 3)
         self._show_sprint = self._pcfg.get("show_current_sprint_stories", True)
+        self._unest_default = cfg.get("unestimated_default_points", 13)
 
     def compute(self, stories: list[JiraStory], velocities: list[SprintVelocity],
                 unidentified: list[JiraStory] | None = None,
@@ -168,8 +169,17 @@ class KPICalculator:
         # Backlog = concrete untreated stories
         backlog_pts = sum(s.story_points for s in live_stories
                          if s.status not in COMPLETED_STATUSES and s.status not in ACTIVE_STATUSES)
+
+        # Unestimated padding: stories with 0 SP, not done, not active, not planned
+        unest = [s for s in live_stories
+                 if s.story_points == 0
+                 and s.status not in COMPLETED_STATUSES
+                 and s.status not in ACTIVE_STATUSES
+                 and not s.sprint]
+        unest_padding = len(unest) * self._unest_default
+
         projection_remaining = max(total_pts - eff, 0)
-        remaining = max(projection_remaining, backlog_pts)
+        remaining = max(projection_remaining, backlog_pts) + unest_padding
 
         s0 = self._pcfg.get("start_date", "2025-10-01")
         e0 = self._pcfg.get("end_date", "2026-09-30")
@@ -189,6 +199,7 @@ class KPICalculator:
             projected_total=proj, project_deadline=date.fromisoformat(e0),
             on_track=avg >= need, velocity_needed_per_week=round(need, 1),
             prorata_points=prorata_pts,
+            unestimated_count=len(unest), unestimated_padding=unest_padding,
         )
 
     def _vars(self, pts, done, blocked, prev):

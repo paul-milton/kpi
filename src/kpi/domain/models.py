@@ -172,6 +172,8 @@ class RAFEstimation(BaseModel):
     on_track: bool = True
     velocity_needed_per_week: float = 0.0
     prorata_points: int = 0
+    unestimated_count: int = 0          # stories without SP, not done, not planned
+    unestimated_padding: int = 0        # count × default_points added to remaining
 
 
 class TagSuggestion(BaseModel):

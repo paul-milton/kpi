@@ -36,6 +36,9 @@ project:
 
 velocity_unit: "week"
 
+# Points par défaut pour les stories non estimées (0 SP), non faites, non planifiées
+unestimated_default_points: 13
+
 archive:
   db_path: "data/kpi.json"
 
@@ -109,6 +112,9 @@ dimensions:
       - label: documentation-novae
         display: "Documentation NOVAE"
         keywords: ["documentation NOVAE", "NOVAE"]
+      - label: conception-fonctionnelle
+        display: "Conception Fonctionnelle"
+        keywords: ["conception fonctionnelle", "spécification fonctionnelle", "expression de besoin", "règle de gestion", "parcours utilisateur"]
 
   - label: technique
     display: "Technique"
@@ -116,9 +122,6 @@ dimensions:
       - label: conception
         display: "Conception"
         children:
-          - label: conception-fonctionnelle
-            display: "Conception Fonctionnelle"
-            keywords: ["conception fonctionnelle", "spécification fonctionnelle", "expression de besoin", "règle de gestion", "parcours utilisateur"]
           - label: conception-technique
             display: "Conception Technique"
             keywords: ["conception technique", "spécification technique", "architecture", "modèle de données", "diagramme"]
