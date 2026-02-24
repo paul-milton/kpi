@@ -1,0 +1,34 @@
+{# ══════════ Shared: Tailwind config + CSS + Macros ══════════ #}
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ok: { DEFAULT: '#36B37E', bg: '#e3fcef' },
+        warn: { DEFAULT: '#FF991F', bg: '#fffae6' },
+        err: { DEFAULT: '#DE350B', bg: '#ffebe6' },
+        info: { DEFAULT: '#0052CC', bg: '#deebff' },
+        accent: { DEFAULT: '#6554C0', bg: '#eae6ff' },
+        muted: { DEFAULT: '#6B778C', bg: '#f4f5f7' },
+        dim: '#5E6C84',
+        border: '#DFE1E6',
+      }
+    }
+  }
+}
+</script>
+<style>
+.bar{background:#DFE1E6;border-radius:3px;height:12px;display:inline-block;vertical-align:middle}
+.fill{border-radius:3px;height:12px}.cg{background:#36B37E}.co{background:#FF991F}.cr{background:#DE350B}
+.pct{font-weight:700;margin-left:3px;font-size:11px}.pg{color:#36B37E}.po{color:#FF991F}.pr{color:#DE350B}
+.tog{cursor:pointer;user-select:none}.tog::before{content:'▾ ';font-size:10px;color:#97A0AF}.tog.shut::before{content:'▸ '}
+.hid{display:none}
+.d0{background:#f4f5f7;font-weight:600}.d1{background:#fff}.d2{background:#fafbfc;color:#6B778C;font-size:11px}
+.n{text-align:center}.dc{background:#e3fcef;text-align:center}.da{background:#deebff;text-align:center}
+.db{text-align:center}.dbv{background:#ffebe6;color:#DE350B;font-weight:700}
+a.jk{color:#0052CC;text-decoration:none;font-weight:600}a.jk:hover{text-decoration:underline}
+.drawer{background:#f9fafb;border:1px solid #DFE1E6;border-radius:4px;padding:8px;margin:4px 0 8px 18px;font-size:11px;max-height:200px;overflow-y:auto}
+.drawer table{font-size:11px}.drawer td,.drawer th{padding:2px 6px}
+.pedagogy{background:#f8f9fb;border-left:3px solid #6554C0;padding:6px 10px;margin:6px 0;font-size:11px;color:#5E6C84}
+</style>

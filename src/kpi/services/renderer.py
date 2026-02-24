@@ -22,14 +22,18 @@ class ReportRenderer:
         self._env = Environment(loader=FileSystemLoader(str(_TPL)), autoescape=False)
         self._env.filters["tojson"] = _pydantic_tojson
 
+    @staticmethod
+    def _story_map(r: WeeklyReport) -> dict:
+        return {s.key: s for s in r.all_stories}
+
     def render_preview(self, r: WeeklyReport) -> str:
-        return self._env.get_template("kpi_preview.html").render(r=r)
+        return self._env.get_template("kpi_preview.html").render(r=r, SM=self._story_map(r))
 
     def render_date(self, r: WeeklyReport) -> str:
-        return self._env.get_template("kpi_date.html").render(r=r)
+        return self._env.get_template("kpi_date.html").render(r=r, SM=self._story_map(r))
 
     def render_project(self, r: WeeklyReport) -> str:
-        return self._env.get_template("kpi_project.html").render(r=r)
+        return self._env.get_template("kpi_project.html").render(r=r, SM=self._story_map(r))
 
     def render_confluence(self, r: WeeklyReport) -> str:
         return self._env.get_template("kpi_confluence.html.j2").render(r=r)

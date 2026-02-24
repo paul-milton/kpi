@@ -6,7 +6,7 @@ Rules:
 - effective_done = done + prorata.
 - Completion = effective_done / total_points.
 - Weather is TIME-RELATIVE: completion / time_progress → adjusts for project phase.
-- estimated_remaining coherent with projection, +15% margin.
+- estimated_remaining coherent with projection, +10% margin.
 - Unestimated padding capped at max_ratio × total_known_points.
 """
 from __future__ import annotations
@@ -78,7 +78,7 @@ class KPICalculator:
         self._sw = self._pcfg.get("sprint_duration_weeks", 3)
         self._unest_default = cfg.get("unestimated_default_points", 3)
         self._unest_max_ratio = cfg.get("unestimated_max_ratio", 0.5)
-        self._projection_margin = cfg.get("projection_margin", 0.15)
+        self._projection_margin = cfg.get("projection_margin", 0.10)
         self._projection_default_weight = cfg.get("projection_default_weight", 0.3)
 
     def compute(self, stories: list[JiraStory], velocities: list[SprintVelocity],
@@ -132,6 +132,8 @@ class KPICalculator:
         # Tag scores: structural advancement per dimension (Story 1-1)
         cur_sprint_name = f"Sprint {snum}"
         tag_scores = [self._tag_score(n, live, cur_sprint_name) for n in self._dims]
+        # Merge DimensionKPI operational data into TagScore (Story 2-2)
+        self._merge_dim_into_tags(tag_scores, dim_kpis)
 
         # Score_Global: weighted average of top-level tag scores (Story 1-3)
         # "À date": only stories in current or past sprints
@@ -373,6 +375,23 @@ class KPICalculator:
         for c in ts.children:
             keys.update(self._tag_score_keys(c, stories))
         return keys
+
+    @staticmethod
+    def _merge_dim_into_tags(tags: list[TagScore], dims: list[DimensionKPI]) -> None:
+        """Merge operational DimensionKPI data into TagScore objects (Story 2-2).
+
+        Both lists share the same tree structure (same dimension nodes),
+        so we merge by matching index positions recursively.
+        """
+        for tag, dim in zip(tags, dims):
+            tag.weather = dim.weather
+            tag.completion_ratio = dim.completion_ratio
+            tag.done_points = dim.done_points
+            tag.estimated_remaining = dim.estimated_remaining
+            tag.breakdown = dim.breakdown
+            tag.stories = dim.stories
+            if tag.children and dim.children:
+                KPICalculator._merge_dim_into_tags(tag.children, dim.children)
 
     def _backlog_stability(self, stories: list[JiraStory],
                            cur_sprint: any, raf: RAFEstimation | None) -> BacklogStability:

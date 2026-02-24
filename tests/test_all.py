@@ -119,11 +119,13 @@ t("ds_none", ds(None) is None)
 # TEMPLATES: preview — points only, no prorata, no timeline
 # ═══════════════════════════════════════════════════════
 with open(os.path.join(BASE, 'templates', 'kpi_preview.html')) as f: tpl=f.read()
+with open(os.path.join(BASE, 'templates', '_shared.html')) as f: tpl+=f.read()
+with open(os.path.join(BASE, 'templates', '_macros.html')) as f: tpl+=f.read()
 t("tpl_tailwind_cdn", 'cdn.tailwindcss.com' in tpl)
 t("tpl_tailwind_config", 'tailwind.config' in tpl)
 t("tpl_has_macros", '{%- macro ' in tpl)
-t("tpl_pts_termines", 'pts termines' in tpl)
-t("tpl_restant_estime", 'restant estime' in tpl)
+t("tpl_pts_termines", 'points terminés' in tpl)
+t("tpl_restant_estime", 'restant projeté' in tpl)
 t("tpl_fold", 'fold(' in tpl)
 t("tpl_drawer", 'drawer' in tpl)
 t("tpl_jira_links", 'jira_base_url' in tpl)
@@ -139,7 +141,8 @@ t("tpl_points_only", 'story_table' not in tpl or tpl.count('show_status') <= 1)
 # TEMPLATES: confluence — points only
 # ═══════════════════════════════════════════════════════
 with open(os.path.join(BASE, 'templates', 'kpi_confluence.html.j2')) as f: ct=f.read()
-t("conf_pts_termines", 'pts termines' in ct)
+t("conf_pts_termines", 'points terminés' in ct)
+t("conf_restant_projete", 'restant projeté' in ct)
 t("conf_no_prorata", 'prorata' not in ct)
 t("conf_no_current_sprint_stories", 'current_sprint_stories' not in ct)
 
@@ -901,9 +904,10 @@ t("calc_projection_default_weight", 'projection_default_weight' in cc4)
 t("tpl_date_exists", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_date.html')))
 t("tpl_project_exists", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_project.html')))
 
-# Read templates
-with open(os.path.join(BASE, 'templates', 'kpi_date.html')) as f: tpl_date=f.read()
-with open(os.path.join(BASE, 'templates', 'kpi_project.html')) as f: tpl_proj=f.read()
+# Read templates (include shared files for substring checks)
+_shared_content = open(os.path.join(BASE, 'templates', '_shared.html')).read() + open(os.path.join(BASE, 'templates', '_macros.html')).read()
+with open(os.path.join(BASE, 'templates', 'kpi_date.html')) as f: tpl_date=f.read() + _shared_content
+with open(os.path.join(BASE, 'templates', 'kpi_project.html')) as f: tpl_proj=f.read() + _shared_content
 
 # AC #1: Both have Tailwind
 t("tpl_date_tailwind", 'cdn.tailwindcss.com' in tpl_date)
@@ -1121,14 +1125,16 @@ t("time_progress_range", 0.0 < dl_report.time_progress <= 1.0)
 
 # AC1: Deadline banner in templates
 from pathlib import Path as _P
-tpl_date2 = _P("src/kpi/templates/kpi_date.html").read_text()
-tpl_proj2 = _P("src/kpi/templates/kpi_project.html").read_text()
-tpl_prev2 = _P("src/kpi/templates/kpi_preview.html").read_text()
-tpl_conf2 = _P("src/kpi/templates/kpi_confluence.html.j2").read_text()
+_tpl_dir = _P("src/kpi/templates")
+_shared = _tpl_dir.joinpath("_shared.html").read_text() + _tpl_dir.joinpath("_macros.html").read_text()
+tpl_date2 = _tpl_dir.joinpath("kpi_date.html").read_text() + _shared
+tpl_proj2 = _tpl_dir.joinpath("kpi_project.html").read_text() + _shared
+tpl_prev2 = _tpl_dir.joinpath("kpi_preview.html").read_text() + _shared
+tpl_conf2 = _tpl_dir.joinpath("kpi_confluence.html.j2").read_text()
 
-t("banner_date_template", "DEADLINE BANNER" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
-t("banner_project_template", "DEADLINE BANNER" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
-t("banner_preview_template", "DEADLINE BANNER" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
+t("banner_date_template", "BANDEAU" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
+t("banner_project_template", "BANDEAU" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
+t("banner_preview_template", "BANDEAU" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
 t("banner_confluence_template", "r.project_end" in tpl_conf2 and "r.days_remaining" in tpl_conf2)
 
 # AC1: time_progress bar in banner
@@ -1150,8 +1156,8 @@ t("color_green_threshold", "ratio>=0.8%}cg" in tpl_date2)
 t("color_orange_threshold", "ratio>=0.5%}co" in tpl_date2)
 t("color_red_implicit", "cr{%endif%}" in tpl_date2)
 
-# AC3: Time-relative color thresholds in JS
-t("trb_green_threshold", "r>=1?" in tpl_date2 or "r>=.8?" in tpl_date2)
+# AC3: Unified table rendered server-side (Jinja2 unified_tree macro)
+t("trb_green_threshold", "unified_tree(r.tag_scores)" in tpl_date2)
 
 # AC4: Documentation updated
 doc = _P("docs/methode-calcul.md").read_text()

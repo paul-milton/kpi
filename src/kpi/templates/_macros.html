@@ -1,0 +1,73 @@
+{# ══════════ Shared Jinja2 Macros ══════════ #}
+
+{%- macro delta(label) -%}
+{%- for v in r.variations if v.label==label -%}
+<span class="text-[10px] font-semibold mt-1 inline-block px-1.5 rounded-sm
+  {%- if v.delta>0 %} text-ok bg-ok-bg
+  {%- elif v.delta<0 %} text-err bg-err-bg
+  {%- else %} text-muted bg-muted-bg{%- endif %}">
+  {{- v.delta_str -}}
+</span>
+{%- endfor -%}
+{%- endmacro -%}
+
+{%- macro pbar(ratio, w=300, h=18, fs=16) -%}
+<div class="bar" style="width:{{w}}px;height:{{h}}px"><div class="fill {%if ratio>=0.8%}cg{%elif ratio>=0.5%}co{%else%}cr{%endif%}" style="width:{{(ratio*w)|int}}px;height:{{h}}px"></div></div>
+<span class="pct {%if ratio>=0.8%}pg{%elif ratio>=0.5%}po{%else%}pr{%endif%}" style="font-size:{{fs}}px">{{(ratio*100)|round(1)}}%</span>
+{%- endmacro -%}
+
+{%- macro ratio_bg(r) -%}{%if r>=0.8%}bg-ok-bg{%elif r>=0.5%}bg-warn-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
+{%- macro status_bg(r) -%}{%if r%}bg-ok-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
+
+{# ── Tableau unifié : score structurel + météo + en cours + bloqués ── #}
+{%- macro unified_tree(tags, lvl=0, parent='') -%}
+{%- for t in tags -%}
+{%- if t.total_points > 0 or t.children|selectattr("total_points","gt",0)|list -%}
+{%- set nid = parent ~ '-' ~ loop.index0 if parent else 'n' ~ loop.index0 -%}
+{%- set has_kids = t.children|selectattr("total_points","gt",0)|list|length > 0 -%}
+{%- set has_stories = t.stories|length > 0 if t.stories else false -%}
+{%- set act = (t.breakdown.in_progress or 0) + (t.breakdown.review or 0) + (t.breakdown.testing or 0) -%}
+<tr class="d{{lvl}}{%if lvl>0%} kid p-{{parent}}{%endif%}" data-nid="{{nid}}">
+  <td style="padding-left:{{lvl*18+6}}px">{%- if has_kids -%}<span class="tog" onclick="fold('{{nid}}')">{{t.display or t.label}}</span>{%- else -%}{%if lvl>0%}&#x2514; {%endif%}{{t.display or t.label}}{%- endif -%}{%- if has_stories and lvl >= 1 %} <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('{{nid}}')" title="stories">&#x1F4CB;</span>{%- endif -%}</td>
+  <td class="n">{%if t.total_points%}{{t.weather.value}}{%endif%}</td>
+  <td>{%if t.total_points%}{{ pbar(t.score, 100, 12, 11) }}{%endif%}</td>
+  <td class="da">{%if t.total_points and act%}{{act}}{%endif%}</td>
+  <td class="db{%if t.breakdown.blocked > 0%} dbv{%endif%}">{%if t.breakdown.blocked > 0%}{{t.breakdown.blocked}}{%endif%}</td>
+</tr>
+{%- if has_stories and lvl >= 1 -%}
+<tr class="kid p-{{parent}} hid" id="dw-{{nid}}">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr>
+  {%- for skey in t.stories -%}{%- if skey in SM -%}{%- set s = SM[skey] -%}
+  <tr><td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td><td>{{s.summary}}</td><td>{{s.status.value}}</td><td class="n">{{s.story_points}}</td><td style="font-size:9px">{{s.labels|join(', ')}}</td></tr>
+  {%- endif -%}{%- endfor -%}
+  </table></div></td>
+</tr>
+{%- endif -%}
+{{ unified_tree(t.children, lvl+1, nid) }}
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro -%}
+
+{# ── Bandeau échéance ── #}
+{%- macro deadline_banner() -%}
+<div class="bg-white rounded-lg shadow-sm p-3 mb-2 flex items-center justify-between text-[12px]">
+  <div><span class="font-semibold text-muted">Début&nbsp;:</span> {{r.project_start}}</div>
+  <div class="flex-1 mx-4">{{ pbar(r.time_progress, w=400, h=10, fs=11) }}</div>
+  <div><span class="font-semibold {%if r.days_remaining<=30%}text-err{%elif r.days_remaining<=90%}text-warn{%else%}text-muted{%endif%}">Échéance&nbsp;: {{r.project_end}}</span> <span class="text-muted">({{r.days_remaining}}&nbsp;jours)</span></div>
+</div>
+{%- endmacro -%}
+
+{# ── JS fold/unfold ── #}
+{%- macro fold_js() -%}
+<script>
+function fold(id){
+  const b=document.querySelector(`[data-nid="${id}"] .tog`);if(!b)return;
+  const s=b.classList.toggle('shut');
+  document.querySelectorAll(`.p-${id}`).forEach(r=>{
+    if(s){r.classList.add('hid');const t=r.querySelector('.tog');if(t&&!t.classList.contains('shut')){const sid=r.dataset.nid;if(sid)fold(sid)}}
+    else if(!r.id||!r.id.startsWith('dw-'))r.classList.remove('hid')
+  });
+}
+function td2(nid){const e=document.getElementById('dw-'+nid);if(e)e.classList.toggle('hid')}
+</script>
+{%- endmacro -%}

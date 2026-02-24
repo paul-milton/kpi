@@ -124,13 +124,20 @@ class DimensionKPI(BaseModel):
 
 
 class TagScore(BaseModel):
-    """Structural advancement score per dimension tag."""
+    """Unified dimension model: structural score + operational KPIs."""
     label: str
     display: str = ""
     score: float = 0.0              # 0.0-1.0 weighted structural score
     story_count: int = 0
     total_points: int = 0
     weighted_sum: float = 0.0       # numerator: Σ(pts × status_w × sprint_w)
+    # Operational KPI fields (merged from DimensionKPI)
+    done_points: int = 0
+    estimated_remaining: int = 0
+    completion_ratio: float = 0.0
+    weather: WeatherIcon = WeatherIcon.CLOUDY
+    breakdown: StatusBreakdown = Field(default_factory=StatusBreakdown)
+    stories: list[str] = Field(default_factory=list)
     children: list[TagScore] = Field(default_factory=list)
 
     @property
