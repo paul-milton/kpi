@@ -343,13 +343,15 @@ class KPICalculator:
         for s in extra:
             pts = max(s.story_points, 1)  # count 0-SP stories as 1 pt for scoring
             sw = TAG_STATUS_WEIGHTS.get(s.status, 0.0)
-            # Sprint weight (AC #3)
-            if s.sprint and s.sprint == current_sprint:
+            # Sprint weight (AC #3) — Done work always counts fully
+            if s.status in COMPLETED_STATUSES:
+                spw = 1.0
+            elif s.sprint and s.sprint == current_sprint:
                 spw = 1.0
             elif s.status in ACTIVE_STATUSES:
                 spw = 0.5
             else:
-                spw = 0.05
+                spw = 0.1
             weighted_sum += pts * sw * spw
             total_pts += pts
             story_count += 1

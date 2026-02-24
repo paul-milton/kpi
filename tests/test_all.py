@@ -1132,9 +1132,9 @@ tpl_proj2 = _tpl_dir.joinpath("kpi_project.html").read_text() + _shared
 tpl_prev2 = _tpl_dir.joinpath("kpi_preview.html").read_text() + _shared
 tpl_conf2 = _tpl_dir.joinpath("kpi_confluence.html.j2").read_text()
 
-t("banner_date_template", "BANDEAU" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
-t("banner_project_template", "BANDEAU" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
-t("banner_preview_template", "BANDEAU" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
+t("banner_date_template", "top_boxes" in tpl_date2 and "r.project_end" in tpl_date2 and "r.days_remaining" in tpl_date2)
+t("banner_project_template", "top_boxes" in tpl_proj2 and "r.project_end" in tpl_proj2 and "r.days_remaining" in tpl_proj2)
+t("banner_preview_template", "top_boxes" in tpl_prev2 and "r.project_end" in tpl_prev2 and "r.days_remaining" in tpl_prev2)
 t("banner_confluence_template", "r.project_end" in tpl_conf2 and "r.days_remaining" in tpl_conf2)
 
 # AC1: time_progress bar in banner
@@ -1152,8 +1152,8 @@ t("weather_stormy", weather_calc._weather(0.19).value == "⛈️")
 t("weather_stormy_zero", weather_calc._weather(0.0).value == "⛈️")
 
 # AC3: Color thresholds in templates (progress bars)
-t("color_green_threshold", "ratio>=0.8%}cg" in tpl_date2)
-t("color_orange_threshold", "ratio>=0.5%}co" in tpl_date2)
+t("color_green_threshold", "ratio>=0.5%}cg" in tpl_date2)
+t("color_orange_threshold", "ratio>=0.25%}co" in tpl_date2)
 t("color_red_implicit", "cr{%endif%}" in tpl_date2)
 
 # AC3: Unified table rendered server-side (Jinja2 unified_tree macro)

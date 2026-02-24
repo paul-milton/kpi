@@ -5,22 +5,20 @@
 <title>{{ r.project_name or 'KPI' }} — À Date — Sprint {{ r.sprint_number }}</title>
 {% include '_shared.html' %}
 </head>
-{% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, deadline_banner, fold_js with context %}
+{% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, top_boxes, fold_js with context %}
 
 <body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
 <div class="max-w-[1300px] mx-auto">
 
-{# ══════════ BANDEAU ÉCHÉANCE ══════════ #}
-{{ deadline_banner() }}
+{# ══════════ DEUX CARRÉS : % TEMPS + SCORE GLOBAL ══════════ #}
+{{ top_boxes() }}
 
 {# ══════════ EN-TÊTE ══════════ #}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <div class="text-center text-muted text-[11px] mb-2">Rapport à date — Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
-  <h1 class="text-xl text-center font-bold">{{r.overall_weather.value}} {{ r.project_name or 'KPI' }} — {{(r.overall_completion*100)|round(1)}}&nbsp;%</h1>
-  <div class="text-center my-2">{{ pbar(r.overall_completion) }}</div>
 
   {# Indicateurs clés #}
-  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-3 mb-1.5 ml-0.5">&#x1F3AF; Story points</div>
+  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-1 mb-1.5 ml-0.5">&#x1F3AF; Story points</div>
   <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
     <div class="rounded-lg p-3 text-center bg-ok-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.done_points}}</span>
@@ -35,10 +33,6 @@
       <span class="text-[22px] font-bold leading-tight block">{{r.total_points}}</span>
       <span class="text-[10px] text-dim block mt-0.5">total</span>
     </div>
-    <div class="rounded-lg p-3 text-center {{ ratio_bg(r.overall_completion) }}">
-      <span class="text-[22px] font-bold leading-tight block">{{(r.overall_completion*100)|round(0)|int}}&nbsp;%</span>
-      <span class="text-[10px] text-dim block mt-0.5">avancement</span>
-    </div>
     <div class="rounded-lg p-3 text-center bg-err-bg">
       <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
       <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloqués</span>
@@ -46,26 +40,18 @@
   </div>
 </div>
 
-{# ══════════ SCORE GLOBAL À DATE ══════════ #}
-<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F3C6; Score global à date</h2>
-  <div class="text-center my-3">{{ pbar(r.score_global_date, 400, 22, 20) }}</div>
-  <div class="pedagogy">Score global à date&nbsp;: {{(r.score_global_date*100)|round(0)|int}}&nbsp;% — le projet est à {{(r.score_global_date*100)|round(0)|int}}&nbsp;% de complétude structurelle sur les sprints réalisés.</div>
-</div>
-
 {# ══════════ AVANCEMENT PAR DOMAINE ══════════ #}
 {%if r.tag_scores%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
-    <strong>Score structurel&nbsp;:</strong> avancement pondéré par statut et sprint (Done = 100&nbsp;%, In Progress = 50&nbsp;%, Backlog = 10&nbsp;%).
+    <strong>Score structurel&nbsp;:</strong> avancement pondéré par statut (Done = 100&nbsp;%, In Progress = 50&nbsp;%).
   </div>
   <table class="w-full border-collapse text-xs">
   <thead><tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[200px]">Domaine</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Météo</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[140px]">Score structurel</th>
-    <th class="bg-info-bg text-left px-2 py-1 font-semibold border-b-2 border-border">En cours</th>
     <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Bloqués</th>
   </tr></thead>
   <tbody>{{ unified_tree(r.tag_scores) }}</tbody>
