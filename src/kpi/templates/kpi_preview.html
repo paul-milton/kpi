@@ -2,121 +2,230 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>KPI — Sprint {{ r.sprint_number }}</title>
+<title>{{ r.project_name or 'KPI' }} — Sprint {{ r.sprint_number }}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ok: { DEFAULT: '#36B37E', bg: '#e3fcef' },
+        warn: { DEFAULT: '#FF991F', bg: '#fffae6' },
+        err: { DEFAULT: '#DE350B', bg: '#ffebe6' },
+        info: { DEFAULT: '#0052CC', bg: '#deebff' },
+        accent: { DEFAULT: '#6554C0', bg: '#eae6ff' },
+        muted: { DEFAULT: '#6B778C', bg: '#f4f5f7' },
+        dim: '#5E6C84',
+        border: '#DFE1E6',
+      }
+    }
+  }
+}
+</script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#172B4D;padding:16px;font-size:13px}
-.w{max-width:1300px;margin:0 auto}
-.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:18px;margin-bottom:14px}
-h1{font-size:20px;text-align:center}
-h2{font-size:14px;color:#253858;border-bottom:2px solid #DFE1E6;padding-bottom:4px;margin-bottom:10px}
-.meta{text-align:center;color:#6B778C;font-size:11px;margin-bottom:8px}
-.rt{font-weight:700;font-size:10px;color:#6B778C;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px 2px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
-.kc{border-radius:8px;padding:12px;text-align:center}
-.kc .v{font-size:22px;font-weight:700;line-height:1.2;display:block}
-.kc .l{font-size:10px;color:#5E6C84;display:block;margin-top:2px}
-.kc .d{font-size:10px;font-weight:600;margin-top:3px;display:inline-block;padding:1px 5px;border-radius:3px}
-.dp{color:#36B37E;background:#e3fcef}.dn{color:#DE350B;background:#ffebe6}.dz{color:#6B778C;background:#f4f5f7}
-.g{background:#e3fcef}.o{background:#fffae6}.re{background:#ffebe6}.b{background:#deebff}.p{background:#eae6ff}.gr{background:#f4f5f7}
+/* ── Progress bars (JS bh function) ── */
 .bar{background:#DFE1E6;border-radius:3px;height:12px;display:inline-block;vertical-align:middle}
 .fill{border-radius:3px;height:12px}.cg{background:#36B37E}.co{background:#FF991F}.cr{background:#DE350B}
 .pct{font-weight:700;margin-left:3px;font-size:11px}.pg{color:#36B37E}.po{color:#FF991F}.pr{color:#DE350B}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:#f4f5f7;text-align:left;padding:5px 7px;font-weight:600;border-bottom:2px solid #DFE1E6;white-space:nowrap}
-td{padding:4px 7px;border-bottom:1px solid #EBECF0}.n{text-align:center}
+/* ── Fold/unfold (JS) ── */
+.tog{cursor:pointer;user-select:none}.tog::before{content:'▾ ';font-size:10px;color:#97A0AF}.tog.shut::before{content:'▸ '}
+.hid{display:none}
+/* ── Dimension table rows (JS rd function) ── */
 .d0{background:#f4f5f7;font-weight:600}.d1{background:#fff}.d2{background:#fafbfc;color:#6B778C;font-size:11px}
-.dc{background:#e3fcef;text-align:center}.da{background:#deebff;text-align:center}
+.n{text-align:center}.dc{background:#e3fcef;text-align:center}.da{background:#deebff;text-align:center}
 .db{text-align:center}.dbv{background:#ffebe6;color:#DE350B;font-weight:700}
-.tog{cursor:pointer;user-select:none}.tog::before{content:'▾ ';font-size:10px;color:#97A0AF}.tog.shut::before{content:'▸ '}.hid{display:none}
-.tl{display:flex;gap:2px;margin:8px 0}.sp{flex:1;text-align:center;padding:4px 2px;border-radius:4px;font-size:9px;line-height:1.3}
-.sp-past{background:#e3fcef;color:#36B37E}.sp-cur{background:#0052CC;color:#fff;font-weight:700}.sp-fut{background:#f4f5f7;color:#97A0AF}
+/* ── Links & drawers (JS) ── */
 a.jk{color:#0052CC;text-decoration:none;font-weight:600}a.jk:hover{text-decoration:underline}
 .drawer{background:#f9fafb;border:1px solid #DFE1E6;border-radius:4px;padding:8px;margin:4px 0 8px 18px;font-size:11px;max-height:200px;overflow-y:auto}
 .drawer table{font-size:11px}.drawer td,.drawer th{padding:2px 6px}
-.foot{text-align:center;color:#A5ADBA;font-size:10px;margin-top:14px}
-.pro{font-size:10px;color:#6B778C;text-align:center;margin-top:4px;font-style:italic}
 </style>
 </head>
-<body>
-<div class="w">
-<div class="card">
-  <div class="meta">Sprint {{r.sprint_number}} — sem. {{r.sprint_week}}/{{r.sprint_duration_weeks}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
-  <h1>{{r.overall_weather.value}} KPI — {{(r.overall_completion*100)|round(1)}}%</h1>
-  <div style="text-align:center;margin:8px 0"><div class="bar" style="width:300px;height:18px"><div class="fill {%if r.overall_completion>=0.8%}cg{%elif r.overall_completion>=0.5%}co{%else%}cr{%endif%}" style="width:{{(r.overall_completion*300)|int}}px;height:18px"></div></div> <span class="pct {%if r.overall_completion>=0.8%}pg{%elif r.overall_completion>=0.5%}po{%else%}pr{%endif%}" style="font-size:16px">{{(r.overall_completion*100)|round(1)}}%</span></div>
-  {%if r.prorata_points > 0%}<div class="pro">dont {{r.prorata_points}} pts prorata temporis (sem. {{r.sprint_week}}/{{r.sprint_duration_weeks}})</div>{%endif%}
 
-  {# Sprint timeline #}
-  {%if r.sprint_timeline%}<div class="tl">{%for s in r.sprint_timeline%}<div class="sp {%if s.is_current%}sp-cur{%elif s.is_past%}sp-past{%else%}sp-fut{%endif%}" title="{{s.start_date}} → {{s.end_date}}">S{{s.number}}{%if s.is_current%}<br>sem.{{s.current_week}}{%endif%}</div>{%endfor%}</div>{%endif%}
+{# ══════════ Macros ══════════ #}
+{%- macro delta(label) -%}
+{%- for v in r.variations if v.label==label -%}
+<span class="text-[10px] font-semibold mt-1 inline-block px-1.5 rounded-sm
+  {%- if v.delta>0 %} text-ok bg-ok-bg
+  {%- elif v.delta<0 %} text-err bg-err-bg
+  {%- else %} text-muted bg-muted-bg{%- endif %}">
+  {{- v.delta_str -}}
+</span>
+{%- endfor -%}
+{%- endmacro -%}
 
-  {# ROW 1: Story Points (seul KPI volume) #}
-  <div class="rt">🎯 story points</div>
-  <div class="grid">
-    <div class="kc g"><span class="v">{{r.effective_done}}</span><span class="l">✅ pts faits{%if r.prorata_points%} <small>(+{{r.prorata_points}} prorata)</small>{%endif%}</span>{%for v in r.variations if v.label=="terminés"%}<span class="d dp">{{v.delta_str}} ({{v.delta_pct_str}})</span>{%endfor%}</div>
-    <div class="kc o"><span class="v">{{r.total_points - r.effective_done}}</span><span class="l">🔄 pts restant estimé</span>{%for v in r.variations if v.label=="points"%}<span class="d {%if v.delta>0%}dn{%elif v.delta<0%}dp{%else%}dz{%endif%}">{{v.delta_str}}</span>{%endfor%}</div>
-    <div class="kc {%if r.overall_completion>=0.8%}g{%elif r.overall_completion>=0.5%}o{%else%}re{%endif%}"><span class="v">{{(r.overall_completion*100)|round(0)|int}}%</span><span class="l">avancement</span></div>
-    <div class="kc re"><span class="v">{{r.blocked_stories|length}}</span><span class="l">🚨 bloquées</span>{%for v in r.variations if v.label=="bloquées"%}<span class="d {%if v.delta>0%}dn{%elif v.delta<0%}dp{%else%}dz{%endif%}">{{v.delta_str}}</span>{%endfor%}</div>
-    {%if r.raf%}<div class="kc p"><span class="v">{{r.raf.projected_total}}</span><span class="l">📈 projeté sept.</span></div>{%endif%}
-  </div>
+{%- macro pbar(ratio, w=300, h=18, fs=16) -%}
+<div class="bar" style="width:{{w}}px;height:{{h}}px"><div class="fill {%if ratio>=0.8%}cg{%elif ratio>=0.5%}co{%else%}cr{%endif%}" style="width:{{(ratio*w)|int}}px;height:{{h}}px"></div></div>
+<span class="pct {%if ratio>=0.8%}pg{%elif ratio>=0.5%}po{%else%}pr{%endif%}" style="font-size:{{fs}}px">{{(ratio*100)|round(1)}}%</span>
+{%- endmacro -%}
 
-  {# ROW 2: Synthèse #}
-  <div class="rt">📊 synthèse</div>
-  <div class="grid">
+{%- macro ratio_bg(r) -%}{%if r>=0.8%}bg-ok-bg{%elif r>=0.5%}bg-warn-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
+
+{%- macro status_bg(r) -%}{%if r%}bg-ok-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
+
+<body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
+<div class="max-w-[1300px] mx-auto">
+
+{# ══════════ HEADER ══════════ #}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <div class="text-center text-muted text-[11px] mb-2">Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+  <h1 class="text-xl text-center font-bold">{{r.overall_weather.value}} {{ r.project_name or 'KPI' }} — {{(r.overall_completion*100)|round(1)}}%</h1>
+  <div class="text-center my-2">{{ pbar(r.overall_completion) }}</div>
+
+  {# KPI cards — points only #}
+  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-3 mb-1.5 ml-0.5">&#x1F3AF; story points</div>
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+    <div class="rounded-lg p-3 text-center bg-ok-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.done_points}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x2705; pts termines</span>
+      {{ delta("terminés") }}
+    </div>
+    <div class="rounded-lg p-3 text-center bg-warn-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.estimated_remaining}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F504; restant estime</span>
+      {{ delta("points") }}
+    </div>
+    <div class="rounded-lg p-3 text-center bg-muted-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.total_points}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">total</span>
+    </div>
+    <div class="rounded-lg p-3 text-center {{ ratio_bg(r.overall_completion) }}">
+      <span class="text-[22px] font-bold leading-tight block">{{(r.overall_completion*100)|round(0)|int}}%</span>
+      <span class="text-[10px] text-dim block mt-0.5">avancement</span>
+    </div>
+    <div class="rounded-lg p-3 text-center bg-err-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloques</span>
+      {{ delta("bloquées") }}
+    </div>
     {%if r.raf%}
-    <div class="kc {%if r.raf.on_track%}g{%else%}re{%endif%}"><span class="v">{{r.raf.avg_velocity_per_week}}</span><span class="l">pts/sem. moy.</span></div>
-    <div class="kc {%if r.raf.on_track%}g{%else%}re{%endif%}"><span class="v">{{r.raf.velocity_needed_per_week}}</span><span class="l">pts/sem. requis</span></div>
-    <div class="kc {%if r.raf.on_track%}g{%else%}re{%endif%}"><span class="v" style="font-size:28px">{%if r.raf.on_track%}✅{%else%}🚨{%endif%}</span><span class="l">{%if r.raf.on_track%}en bonne voie{%else%}à risque{%endif%}</span></div>
+    <div class="rounded-lg p-3 text-center bg-accent-bg">
+      <span class="text-[22px] font-bold leading-tight block">{{r.raf.projected_total}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F4C8; projete</span>
+    </div>
     {%endif%}
-    <div class="kc gr"><span class="v">S{{r.sprint_week}}/{{r.sprint_duration_weeks}}</span><span class="l">sprint {{r.sprint_number}}</span></div>
-    <div class="kc b"><span class="v">{{r.unidentified_stories|length}}</span><span class="l">❓ orphelines</span></div>
   </div>
+
+  {# Synthese #}
+  {%if r.raf%}
+  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-3 mb-1.5 ml-0.5">&#x1F4CA; synthese</div>
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2">
+    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
+      <span class="text-[22px] font-bold leading-tight block">{{r.raf.avg_velocity_per_week}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">pts/sem. moy.</span>
+    </div>
+    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
+      <span class="text-[22px] font-bold leading-tight block">{{r.raf.velocity_needed_per_week}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">pts/sem. requis</span>
+    </div>
+    <div class="rounded-lg p-3 text-center {{ status_bg(r.raf.on_track) }}">
+      <span class="text-[28px] font-bold leading-tight block">{%if r.raf.on_track%}&#x2705;{%else%}&#x1F6A8;{%endif%}</span>
+      <span class="text-[10px] text-dim block mt-0.5">{%if r.raf.on_track%}en bonne voie{%else%}a risque{%endif%}</span>
+    </div>
+    {%if r.raf.unestimated_count%}
+    <div class="rounded-lg p-3 text-center bg-warn-bg">
+      <span class="text-[22px] font-bold leading-tight block">+{{r.raf.unestimated_padding}}</span>
+      <span class="text-[10px] text-dim block mt-0.5">&#x1F4DD; {{r.raf.unestimated_count}} non estimees</span>
+    </div>
+    {%endif%}
+  </div>
+  {%endif%}
 </div>
 
-{# PROJECTION #}
-{%if r.raf%}<div class="card"><h2>📈 projection — {{r.raf.avg_velocity_per_week}} pts/semaine</h2>
-<table><tr><th>total pts</th><th>pts faits</th><th>reste</th><th>sem. écoulées</th><th>sem. restantes</th><th>projeté</th><th>deadline</th><th>besoin/sem.</th><th>statut</th></tr>
-<tr><td class="n">{{r.total_points}}</td><td class="n" style="background:#e3fcef">{{r.effective_done}}{%if r.prorata_points%} <small>(+{{r.prorata_points}})</small>{%endif%}</td><td class="n" style="font-weight:700">{{r.raf.remaining_points}}</td><td class="n">{{r.raf.weeks_done}}</td><td class="n">{{r.raf.weeks_remaining}}</td><td class="n" style="background:{%if r.raf.on_track%}#e3fcef{%else%}#ffebe6{%endif%};font-weight:700">{{r.raf.projected_total}} pts</td><td class="n">{{r.raf.project_deadline.strftime('%d/%m/%Y') if r.raf.project_deadline}}</td><td class="n" style="font-weight:700">{{r.raf.velocity_needed_per_week}}</td><td class="n" style="background:{%if r.raf.on_track%}#e3fcef{%else%}#ffebe6{%endif%}">{%if r.raf.on_track%}✅{%else%}🚨{%endif%}</td></tr></table></div>{%endif%}
+{# ══════════ PROJECTION ══════════ #}
+{%if r.raf%}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4C8; projection — {{r.raf.avg_velocity_per_week}} pts/semaine</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">total pts</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">pts termines</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">restant est.</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">sem. ecoulees</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">sem. restantes</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">projete</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">deadline</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">besoin/sem.</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">statut</th>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.total_points}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">{{r.done_points}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.estimated_remaining}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_done}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_remaining}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold {{ status_bg(r.raf.on_track) }}">{{r.raf.projected_total}} pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.project_deadline.strftime('%d/%m/%Y') if r.raf.project_deadline}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.raf.velocity_needed_per_week}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center {{ status_bg(r.raf.on_track) }}">{%if r.raf.on_track%}&#x2705;{%else%}&#x1F6A8;{%endif%}</td>
+  </tr>
+  </table>
+</div>
+{%endif%}
 
-{# VÉLOCITÉ #}
-{%if r.velocities%}<div class="card"><h2>🏃 vélocité (pts/semaine)</h2>
-<table><tr><th></th>{%for v in r.velocities%}<th class="n">{{v.sprint_name}}</th>{%endfor%}<th class="n" style="background:#eae6ff">moy.</th></tr>
-<tr><td><b>engagé</b></td>{%for v in r.velocities%}<td class="n">{{v.committed_points}}</td>{%endfor%}<td class="n" style="background:#eae6ff;font-weight:700">{{(r.velocities|map(attribute='committed_points')|sum/r.velocities|length)|round(0)|int}}</td></tr>
-<tr><td><b>livré</b></td>{%for v in r.velocities%}<td class="n" style="background:{%if v.completed_points>=v.committed_points%}#e3fcef{%elif v.completed_points>=v.committed_points*0.7%}#fffae6{%else%}#ffebe6{%endif%}">{{v.completed_points}}</td>{%endfor%}<td class="n" style="background:#eae6ff;font-weight:700">{{(r.velocities|map(attribute='completed_points')|sum/r.velocities|length)|round(0)|int}}</td></tr>
-<tr><td><b>pts/sem.</b></td>{%for v in r.velocities%}<td class="n" style="font-weight:700">{{v.completed_per_week}}</td>{%endfor%}<td class="n" style="background:#eae6ff;font-weight:700">{{(r.velocities|map(attribute='completed_per_week')|sum/r.velocities|length)|round(1)}}</td></tr>
-</table></div>{%endif%}
+{# ══════════ VELOCITE ══════════ #}
+{%if r.velocities%}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F3C3; velocite (pts/semaine)</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border"></th>
+    {%for v in r.velocities%}<th class="bg-muted-bg text-center px-2 py-1 font-semibold border-b-2 border-border">{{v.sprint_name}}</th>{%endfor%}
+    <th class="bg-accent-bg text-center px-2 py-1 font-semibold border-b-2 border-border">moy.</th>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">pts/sem.</td>
+    {%for v in r.velocities%}<td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{v.completed_per_week}}</td>{%endfor%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{(r.velocities|map(attribute='completed_per_week')|sum/r.velocities|length)|round(1)}}</td>
+  </tr>
+  </table>
+</div>
+{%endif%}
 
-{# AVANCEMENT DÉTAILLÉ: pts faits / pts restant estimé / % #}
-<div class="card">
-  <h2>📊 avancement détaillé <span style="font-size:10px;color:#6B778C;font-weight:normal">— ▾ déplier, 📋 stories</span></h2>
-  <table><thead><tr><th style="min-width:240px">domaine</th><th>météo</th><th>pts faits</th><th>restant est.</th><th>est. projet</th><th style="min-width:120px">avancement</th><th style="background:#deebff">actif</th><th style="background:#ffebe6">bloqué</th></tr></thead>
-  <tbody id="dtbody"></tbody></table>
+{# ══════════ AVANCEMENT DETAILLE ══════════ #}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4CA; avancement detaille <span class="text-[10px] text-muted font-normal">— &#x25BE; deplier, &#x1F4CB; stories</span></h2>
+  <table class="w-full border-collapse text-xs">
+  <thead><tr>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[240px]">domaine</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">meteo</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">pts termines</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">restant est.</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">est. projet</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[100px]">% realise</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[100px]">vs objectif</th>
+    <th class="bg-info-bg text-left px-2 py-1 font-semibold border-b-2 border-border">en cours</th>
+    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">bloques</th>
+  </tr></thead>
+  <tbody id="dtbody"></tbody>
+  </table>
 </div>
 
-{# STORIES EN COURS DANS LE SPRINT #}
-{%if r.current_sprint_stories%}
-<div class="card">
-  <h2>🏃 en cours — Sprint {{r.sprint_number}} ({{r.current_sprint_stories|length}} stories)</h2>
-  <table><tr><th>clé</th><th>résumé</th><th>statut</th><th>pts</th><th>labels</th><th>assigné</th></tr>
-  {%for s in r.current_sprint_stories%}
-  <tr style="background:{%if s.status.value=='in-progress'%}#deebff{%elif s.status.value=='review'%}#eae6ff{%elif s.status.value=='testing'%}#fffae6{%else%}#fff{%endif%}">
-    <td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} ↗</a></td>
-    <td>{{s.summary}}</td><td>{{s.status.value}}</td><td class="n">{{s.story_points}}</td>
-    <td style="font-size:10px">{{s.labels|join(', ')}}</td><td>{{s.assignee or '—'}}</td>
-  </tr>{%endfor%}</table>
-</div>{%endif%}
-
-{# BLOQUÉES #}
-{%if r.blocked_stories%}<div class="card"><h2>🚨 bloquées ({{r.blocked_stories|length}})</h2>
-<table><tr><th>clé</th><th>résumé</th><th>pts</th><th>labels</th><th>assigné</th></tr>
-{%for s in r.blocked_stories%}<tr style="background:#ffebe6"><td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} ↗</a></td><td>{{s.summary}}</td><td class="n">{{s.story_points}}</td><td style="font-size:10px">{{s.labels|join(', ')}}</td><td>{{s.assignee or '—'}}</td></tr>{%endfor%}</table></div>{%endif%}
-
-{# ORPHELINES #}
-{%if r.unidentified_stories%}<div class="card"><h2>❓ orphelines ({{r.unidentified_stories|length}})</h2>
-<table><tr><th>clé</th><th>résumé</th><th>statut</th><th>pts</th></tr>
-{%for s in r.unidentified_stories%}<tr><td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} ↗</a></td><td>{{s.summary}}</td><td>{{s.status.value}}</td><td class="n">{{s.story_points}}</td></tr>{%endfor%}</table></div>{%endif%}
-
-<div class="foot">kpi v7 — sprint {{r.sprint_number}} sem.{{r.sprint_week}}/{{r.sprint_duration_weeks}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+{# ══════════ BLOQUES ══════════ #}
+{%if r.blocked_stories%}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; bloques — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">cle</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">resume</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">pts</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">assigne</th>
+  </tr>
+  {%for s in r.blocked_stories%}
+  <tr class="bg-err-bg">
+    <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td>
+    <td class="px-2 py-1 border-b border-gray-100">{{s.summary}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{s.story_points}}</td>
+    <td class="px-2 py-1 border-b border-gray-100">{{s.assignee or '&#8212;'}}</td>
+  </tr>
+  {%endfor%}
+  </table>
 </div>
+{%endif%}
+
+<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">kpi v7 — sprint {{r.sprint_number}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+</div>
+
 <script>
 const JIRA="{{r.jira_base_url}}";
 const DIMS={{r.dimension_kpis|tojson}};
@@ -125,6 +234,7 @@ const SM=Object.create(null);ALL.forEach(s=>SM[s.key]=s);
 const tb=document.getElementById('dtbody');
 
 function bh(r,w){w=w||80;const c=r>=.8?'cg':r>=.5?'co':'cr',p=r>=.8?'pg':r>=.5?'po':'pr';return`<div class="bar" style="width:${w}px"><div class="fill ${c}" style="width:${Math.round(r*w)}px"></div></div><span class="pct ${p}">${Math.round(r*100)}%</span>`}
+function trb(r){const c=r>=1?'pg':r>=.7?'po':'pr',bg=r>=1?'cg':r>=.7?'co':'cr',p=Math.min(Math.round(r*100),200);return`<div class="bar" style="width:60px"><div class="fill ${bg}" style="width:${Math.min(Math.round(r*60),60)}px"></div></div><span class="pct ${c}">${p}%</span>`}
 
 function rd(dims,dep,pid){
   dims.forEach((k,i)=>{
@@ -134,19 +244,19 @@ function rd(dims,dep,pid){
     const hs=k.stories&&k.stories.length>0;
     const tr=document.createElement('tr');
     tr.className=`d${dep}`+(dep>0?` kid p-${pid}`:'');tr.dataset.nid=nid;
-    let nm=hk?`<span class="tog" onclick="fold('${nid}')">${k.display}</span>`:(dep>0?'└ ':'')+k.display;
-    if(hs&&dep>=1)nm+=` <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('${nid}')" title="stories">📋</span>`;
+    let nm=hk?`<span class="tog" onclick="fold('${nid}')">${k.display}</span>`:(dep>0?'&#x2514; ':'')+k.display;
+    if(hs&&dep>=1)nm+=` <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('${nid}')" title="stories">&#x1F4CB;</span>`;
     const b=k.breakdown||{};
     const act=(b.in_progress||0)+(b.review||0)+(b.testing||0);
     const blk=b.blocked>0?`<td class="db dbv">${b.blocked}</td>`:'<td class="db"></td>';
-    const done_str=k.effective_done>0?(k.prorata_points>0?`${k.done_points}<small style="color:#6B778C">+${k.prorata_points}</small>`:String(k.effective_done)):'';
-    tr.innerHTML=`<td style="padding-left:${dep*18+6}px">${nm}</td><td class="n">${k.total_points?k.weather:''}</td><td class="dc">${done_str}</td><td class="n" style="color:#FF991F;font-weight:600">${k.estimated_remaining||''}</td><td class="n" style="color:#8993A4;font-style:italic">${k.estimated_project_total>0?k.estimated_project_total:'—'}</td><td>${k.total_points?bh(k.completion_ratio):''}</td><td class="da">${k.total_points?act:''}</td>${blk}`;
+    const trc=k.time_relative_completion||0;
+    tr.innerHTML=`<td style="padding-left:${dep*18+6}px">${nm}</td><td class="n">${k.total_points?k.weather:''}</td><td class="dc">${k.done_points>0?k.done_points:''}</td><td class="n" style="color:#FF991F;font-weight:600">${k.estimated_remaining||''}</td><td class="n" style="color:#8993A4;font-style:italic">${k.estimated_project_total>0?k.estimated_project_total:'&#8212;'}</td><td>${k.total_points?bh(k.completion_ratio):''}</td><td>${k.total_points?trb(trc):''}</td><td class="da">${k.total_points?act:''}</td>${blk}`;
     tb.appendChild(tr);
     if(hs&&dep>=1){
       const dtr=document.createElement('tr');dtr.className=`kid p-${pid} hid`;dtr.id=`dw-${nid}`;
       const ss=k.stories.map(k=>SM[k]).filter(Boolean);
-      let h='<td colspan="8"><div class="drawer"><table><tr><th>clé</th><th>résumé</th><th>statut</th><th>pts</th><th>labels</th></tr>';
-      ss.forEach(s=>{h+=`<tr><td><a class="jk" href="${JIRA}/browse/${s.key}" target="_blank">${s.key} ↗</a></td><td>${s.summary}</td><td>${s.status}</td><td class="n">${s.story_points}</td><td style="font-size:9px">${(s.labels||[]).join(', ')}</td></tr>`});
+      let h='<td colspan="9"><div class="drawer"><table><tr><th>cle</th><th>resume</th><th>statut</th><th>pts</th><th>labels</th></tr>';
+      ss.forEach(s=>{h+=`<tr><td><a class="jk" href="${JIRA}/browse/${s.key}" target="_blank">${s.key} &#8599;</a></td><td>${s.summary}</td><td>${s.status}</td><td class="n">${s.story_points}</td><td style="font-size:9px">${(s.labels||[]).join(', ')}</td></tr>`});
       h+='</table></div></td>';dtr.innerHTML=h;tb.appendChild(dtr);
     }
     if(hk)rd(k.children,dep+1,nid);

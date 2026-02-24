@@ -3,6 +3,9 @@ jira:
   story_points_field: "customfield_10106"
   # Age (days) beyond which unknown statuses are treated as done
   unknown_status_done_after_days: 21
+  # Issue type names (auto-discovered from Jira API, fallback values below)
+  story_types: ["Story", "User Story", "Récit"]
+  task_types: ["Task", "Sub-task", "Subtask", "Sous-tâche", "Tâche"]
   legacy_label_prefixes:
     - "fonctionnalites:"
     - "design:"
@@ -25,11 +28,10 @@ confluence:
   parent_page_title: "06_Organisation / Planification"
 
 project:
+  name: "Mon Projet"
   start_date: "2025-10-01"
   end_date: "2026-09-30"
   sprint_duration_weeks: 3
-  prorata_current_sprint: true
-  show_current_sprint_stories: true
   # Optional: override sprint list instead of computing from start/end
   # sprints:
   #   - {number: 1, start: "2025-10-01", end: "2025-10-21"}
@@ -37,7 +39,11 @@ project:
 velocity_unit: "week"
 
 # Points par défaut pour les stories non estimées (0 SP), non faites, non planifiées
-unestimated_default_points: 13
+unestimated_default_points: 3
+# Cap du padding non estimé en ratio du total connu (0.5 = max 50%)
+unestimated_max_ratio: 0.5
+# Marge d'erreur sur le projeté reste à faire (+15%)
+projection_margin: 0.15
 
 archive:
   db_path: "data/kpi.json"

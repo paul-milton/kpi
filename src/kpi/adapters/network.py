@@ -10,5 +10,9 @@ def resolve_ssl(cfg: dict[str, Any]) -> bool | str:
     return True if val == "true" else val
 
 def resolve_proxies() -> dict[str, str] | None:
+    """Resolve proxy settings. Disabled by default unless PROXY_ENABLED=true."""
+    enabled = os.environ.get("PROXY_ENABLED", "false").lower().strip() == "true"
+    if not enabled:
+        return {"https": "", "http": ""}
     h = os.environ.get("HTTPS_PROXY"); p = os.environ.get("HTTP_PROXY")
     return {"https": h or p, "http": p or h} if h or p else None

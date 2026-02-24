@@ -29,4 +29,5 @@ class ReportRenderer:
         return self._env.get_template("kpi_confluence.html.j2").render(r=r)
 
     def build_title(self, r: WeeklyReport) -> str:
-        return f"KPI Hebdo - S{r.week_number:02d}/{r.year} - Sprint {r.sprint_number}"
+        name = r.project_name or "KPI"
+        return f"{name} Hebdo - S{r.week_number:02d}/{r.year} - Sprint {r.sprint_number}"

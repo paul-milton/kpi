@@ -2,7 +2,7 @@
 
 All points are int. Labels are single lowercase words with dashes.
 Abandoned stories are excluded from all calculations and reports.
-Prorata temporis applied to every dimension, not just global.
+Completion = done / total (no prorata).
 """
 from __future__ import annotations
 from datetime import date, datetime
@@ -34,6 +34,11 @@ class WeatherIcon(str, Enum):
     STORMY = "⛈️"
 
 
+class IssueType(str, Enum):
+    STORY = "story"
+    TASK = "task"
+
+
 class JiraStory(BaseModel):
     key: str
     summary: str
@@ -44,6 +49,8 @@ class JiraStory(BaseModel):
     sprint: str | None = None
     assignee: str | None = None
     created_date: str | None = None
+    issue_type: IssueType = IssueType.STORY
+    parent_key: str | None = None
 
 
 class DimensionNode(BaseModel):
@@ -100,12 +107,12 @@ class DimensionKPI(BaseModel):
     depth: int = 0
     total_points: int = 0
     done_points: int = 0           # completed (done+delivered)
-    prorata_points: int = 0        # prorata for active stories in this dim
-    effective_done: int = 0        # done_points + prorata_points
+    effective_done: int = 0        # = done_points (kept for API compat)
     estimated_remaining: int = 0   # from projection, never < backlog untreated
     backlog_points: int = 0        # concrete untreated (backlog+spec+todo+blocked)
     estimated_project_total: int = 0
-    completion_ratio: float = 0.0  # effective_done / est_project_total
+    completion_ratio: float = 0.0  # effective_done / effective_total
+    time_relative_completion: float = 0.0  # completion_ratio / time_progress (>1 = ahead)
     weather: WeatherIcon = WeatherIcon.CLOUDY
     breakdown: StatusBreakdown = Field(default_factory=StatusBreakdown)
     children: list[DimensionKPI] = Field(default_factory=list)
@@ -164,6 +171,7 @@ class RAFEstimation(BaseModel):
     completed_points: int = 0
     remaining_points: int = 0
     avg_velocity_per_week: float = 0.0
+    velocity_per_sprint: float = 0.0    # avg_velocity_per_week × sprint_weeks
     sprints_done: int = 0
     weeks_done: int = 0
     weeks_remaining: int = 0
@@ -171,9 +179,8 @@ class RAFEstimation(BaseModel):
     project_deadline: date | None = None
     on_track: bool = True
     velocity_needed_per_week: float = 0.0
-    prorata_points: int = 0
     unestimated_count: int = 0          # stories without SP, not done, not planned
-    unestimated_padding: int = 0        # count × default_points added to remaining
+    unestimated_padding: int = 0        # count × default_points (capped)
 
 
 class TagSuggestion(BaseModel):
@@ -208,16 +215,16 @@ class WeeklyReport(BaseModel):
     dimension_kpis: list[DimensionKPI] = Field(default_factory=list)
     blocked_stories: list[JiraStory] = Field(default_factory=list)
     unidentified_stories: list[JiraStory] = Field(default_factory=list)
-    current_sprint_stories: list[JiraStory] = Field(default_factory=list)
     raf: RAFEstimation | None = None
     velocities: list[SprintVelocity] = Field(default_factory=list)
     variations: list[Variation] = Field(default_factory=list)
     total_points: int = 0
     done_points: int = 0
-    prorata_points: int = 0
     effective_done: int = 0
+    estimated_remaining: int = 0
     overall_completion: float = 0.0
     overall_weather: WeatherIcon = WeatherIcon.CLOUDY
+    project_name: str = ""
     jira_base_url: str = ""
     project_start: str = ""
     project_end: str = ""

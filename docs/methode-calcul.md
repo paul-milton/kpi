@@ -2,100 +2,91 @@
 
 ## Source de données
 
-Les données proviennent de **Jira** : toutes les **user stories** du projet, avec leurs **story points**, **statuts** et **labels**.
+- Données Jira : user stories + tasks liées (via `parent` ou `issuelinks`)
+- Tasks orphelines ignorées
+- Stories abandonnées exclues de tous les calculs
 
-## Statuts des stories
+## Statuts
 
-Chaque story Jira est mappée vers un statut interne :
-
-| Statut interne | Exemples Jira |
+| Statut | Exemples Jira |
 |---|---|
-| **backlog** | Nouveau, Ouvert |
-| **specification** | Rédigée, Affinage |
-| **todo** | Prêt, À faire |
-| **in-progress** | En cours, En développement |
-| **review** | Revue de code |
-| **testing** | Recette, En test |
-| **blocked** | Bloqué, En attente |
-| **done** | Terminé, Fermé, Résolu |
-| **delivered** | Livré, En production |
-| **abandoned** | Abandonné, Annulé |
+| backlog | Nouveau, Ouvert |
+| specification | Rédigée, Affinage |
+| todo | Prêt, À faire |
+| in-progress | En cours |
+| review | Revue de code |
+| testing | Recette, En test |
+| blocked | Bloqué |
+| done | Terminé, Fermé |
+| delivered | Livré |
+| abandoned | Abandonné |
 
-Les stories **abandonnées** sont exclues de tous les calculs.
+- Statut Jira inconnu + créé depuis > 21 jours → auto-done
 
-Les stories avec un statut Jira inconnu et créées depuis plus de 21 jours sont automatiquement considérées comme "done".
+## Prorata temporis (crédit partiel)
 
-## Calcul global
+- **in-progress** : 25% des story points comptés comme effectifs
+- **review** : 75% des story points comptés comme effectifs
+- **testing** : 50% des story points comptés comme effectifs
+- `effective_done = done + prorata`
 
-```
-points_terminés = Σ story_points (stories done + delivered)
-points_prorata  = Σ story_points (stories actives) × (semaine_courante / durée_sprint)
-points_effectifs = points_terminés + points_prorata
-avancement_global = points_effectifs / total_points
-```
+## Avancement global
 
-Le **prorata temporis** crédite partiellement les stories en cours (in-progress, review, testing) selon l'avancement dans le sprint courant. Exemple : un sprint de 3 semaines, semaine 2 → les stories actives comptent pour 2/3 de leurs points.
+- `avancement = effective_done / total_points`
+- Inclut le prorata des stories actives
 
-## Calcul par dimension
+## Météo temps-relative
 
-Le projet est organisé en **3 domaines** (Fonctionnel, Technique, Organisationnel), chacun subdivisé en sous-dimensions sur 3 niveaux. Chaque story est rattachée à une ou plusieurs dimensions via ses **labels Jira**.
+- La météo s'ajuste en fonction de l'avancement dans le temps du projet
+- `ratio_relatif = avancement / (semaines_écoulées / durée_totale_projet)`
+- 22% d'avancement à 40% du projet → ratio relatif ~55% → ⛅ vert clair
+- Seuils : ☀️ ≥80% | ⛅ ≥60% | 🌥️ ≥40% | 🌧️ ≥20% | ⛈️ <20%
 
-Pour chaque dimension :
+## Avancement par dimension
 
-```
-points_faits      = terminés + prorata (dans cette dimension)
-restant_estimé    = max(projection_restante, backlog_concret, raf_minimum)
-avancement        = points_faits / (points_faits + restant_estimé)
-```
-
-Où :
-- **projection_restante** = estimation_projet × poids − points_faits
-- **backlog_concret** = stories en backlog + spécification + todo + bloquées
-- **raf_minimum** = vélocité_moyenne × semaines_restantes × poids × 0.1 (garantit qu'aucune dimension n'affiche 100% tant qu'il reste du travail)
-
-Les **poids par domaine** (`domain_weight` dans config.yaml) permettent d'estimer le total de points attendu pour chaque dimension.
+- Deux colonnes : **% réalisé** (brut) + **vs objectif** (relatif au temps)
+- `% réalisé = effective_done / (effective_done + restant)`
+- `vs objectif = % réalisé / avancement_temporel` (>100% = en avance)
+- Micro-jitter déterministe ±2% par dimension pour affichage naturel
+- Restant estimé = max(projection, backlog concret, RAF minimum)
+- RAF minimum = vélocité × semaines restantes × poids × 0.1
 
 ## Stories non estimées
 
-Les stories sans story points (0 SP), non terminées, non en cours, et non planifiées (pas de sprint) représentent du travail caché. Pour chacune, on ajoute un forfait de **13 points** au reste à faire global (RAF).
+- Stories à 0 SP, pas terminées, pas en cours, pas planifiées
+- Forfait : **3 pts** par story (configurable)
+- **Cappé à 50%** du total connu pour éviter les chiffres absurdes
+- `padding = min(nb_stories × 3, total_pts × 0.5)`
 
-```
-stories_non_estimées = stories avec 0 SP, pas done/active, pas de sprint
-padding              = nombre × 13 (configurable: unestimated_default_points)
-RAF_total            = RAF_calculé + padding
-```
+## Restant estimé global
 
-Ce mécanisme évite de sous-estimer le travail restant quand le backlog contient des stories non chiffrées.
+- `raw_remaining = max(total - effective_done, backlog) + padding`
+- **Marge +15%** : `restant_estimé = raw_remaining × 1.15`
+- Cohérent avec la projection
 
 ## Vélocité
 
-La vélocité est calculée **par semaine** (pas par sprint) :
+- Par semaine : `pts_livrés / durée_sprint_semaines`
+- Par sprint : `vélocité/sem × durée_sprint`
+- Sans sprints clos : `effective_done / semaines_écoulées`
 
-```
-vélocité_sprint = points_livrés_sprint / durée_sprint_en_semaines
-vélocité_moyenne = moyenne(vélocité de chaque sprint clos)
-```
+## Projection
 
-## Projection (RAF)
+- `projeté = effective_done + restant_estimé` (cohérent, même champ)
+- `besoin/sem = restant_estimé / semaines_restantes`
+- En bonne voie si `vélocité × semaines_restantes ≥ restant_estimé`
 
-```
-points_projetés = points_effectifs + (vélocité_moyenne × semaines_restantes)
-vélocité_requise = points_restants / semaines_restantes
-en_bonne_voie = vélocité_moyenne >= vélocité_requise
-```
+## Paramètres
 
-## Météo
-
-L'avancement est traduit en icône météo :
-
-| Icône | Seuil |
-|---|---|
-| ☀️ Ensoleillé | ≥ 80% |
-| ⛅ Partiellement couvert | ≥ 60% |
-| 🌥️ Couvert | ≥ 40% |
-| 🌧️ Pluvieux | ≥ 20% |
-| ⛈️ Orageux | < 20% |
+| Paramètre | Défaut | Description |
+|---|---|---|
+| `unestimated_default_points` | 3 | Forfait par story non estimée |
+| `unestimated_max_ratio` | 0.5 | Cap du padding (ratio du total) |
+| `projection_margin` | 0.15 | Marge d'erreur (+15%) |
+| `sprint_duration_weeks` | 3 | Durée sprint en semaines |
+| `PROJECT_NAME` (env) | — | Nom du projet (surcharge config) |
 
 ## Variations
 
-Chaque rapport compare les valeurs actuelles avec le **snapshot précédent** (stocké en TinyDB) et affiche les deltas en points et en pourcentage.
+- Comparaison avec le snapshot précédent (TinyDB)
+- Deltas en points et en pourcentage
