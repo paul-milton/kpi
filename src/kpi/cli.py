@@ -1,6 +1,6 @@
 """CLI — Click-based commands for KPI Generator v7."""
 from __future__ import annotations
-import logging, sys, traceback, webbrowser
+import logging, re, sys, traceback, webbrowser
 from datetime import date
 from pathlib import Path
 import click
@@ -8,7 +8,7 @@ import structlog
 from kpi.adapters.confluence_adapter import ConfluenceAdapter
 from kpi.adapters.jira_adapter import JiraAdapter
 from kpi.config.loader import load_config
-from kpi.domain.models import Snapshot
+from kpi.domain.models import JiraStory, Snapshot
 from kpi.services.calculator import KPICalculator
 from kpi.services.dates import parse_date
 from kpi.services.renderer import ReportRenderer
@@ -229,6 +229,185 @@ def purge_labels(ctx, pattern, dry_run):
     click.echo(f"\n  {'DRY RUN — ' if dry_run else '✅ '}{total_rm} labels sur {affected} stories")
     if dry_run and total_rm > 0:
         click.echo("  --no-dry-run pour appliquer\n")
+
+
+@main.group()
+@click.pass_context
+def labels(ctx):
+    """Manage Jira labels (add, remove, replace, list)."""
+    pass
+
+
+@labels.command("add")
+@click.argument("label")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_add(ctx, label, filter_status, filter_sprint, filter_label, filter_key,
+               filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Add a label to matching stories."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    already = [s for s in matched if label in s.labels]
+    to_add = [s for s in matched if label not in s.labels]
+    click.echo(f"\n  🏷️  add '{label}' — {len(to_add)} stories ({len(already)} déjà taggées, {len(stories) - len(matched)} filtrées)")
+    for s in to_add[:30]:
+        click.echo(f"    {'DRY' if dry_run else '  ✅'} {s.key} — {s.summary[:60]}")
+    if len(to_add) > 30: click.echo(f"    ... et {len(to_add) - 30} autres")
+    if dry_run and to_add:
+        click.echo("  --no-dry-run pour appliquer\n"); return
+    ok = sum(1 for s in to_add if j.add_labels(s.key, [label]))
+    click.echo(f"  ✅ {ok}/{len(to_add)} modifiées\n")
+
+
+@labels.command("remove")
+@click.argument("pattern")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_remove(ctx, pattern, filter_status, filter_sprint, filter_label, filter_key,
+                  filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Remove labels matching a regex pattern from matching stories."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    pat = re.compile(pattern)
+    total_rm = 0; affected = 0
+    for s in matched:
+        to_remove = [l for l in s.labels if pat.search(l)]
+        if not to_remove: continue
+        affected += 1; total_rm += len(to_remove)
+        if dry_run:
+            click.echo(f"    DRY {s.key}: ✗ {to_remove}")
+        else:
+            j.remove_labels(s.key, to_remove)
+            click.echo(f"    ✅  {s.key}: ✗ {to_remove}")
+    click.echo(f"\n  🏷️  remove '{pattern}' — {total_rm} labels sur {affected} stories")
+    if dry_run and total_rm > 0:
+        click.echo("  --no-dry-run pour appliquer\n")
+
+
+@labels.command("replace")
+@click.argument("old_pattern")
+@click.argument("new_label")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_replace(ctx, old_pattern, new_label, filter_status, filter_sprint, filter_label, filter_key,
+                   filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Replace labels matching a regex with a new label."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    pat = re.compile(old_pattern)
+    count = 0
+    for s in matched:
+        to_remove = [l for l in s.labels if pat.search(l)]
+        if not to_remove: continue
+        count += 1
+        if dry_run:
+            click.echo(f"    DRY {s.key}: {to_remove} → {new_label}")
+        else:
+            j.remove_labels(s.key, to_remove)
+            if new_label not in s.labels:
+                j.add_labels(s.key, [new_label])
+            click.echo(f"    ✅  {s.key}: {to_remove} → {new_label}")
+    click.echo(f"\n  🏷️  replace '{old_pattern}' → '{new_label}' — {count} stories")
+    if dry_run and count > 0:
+        click.echo("  --no-dry-run pour appliquer\n")
+
+
+@labels.command("list")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--show-stories", is_flag=True, default=False, help="Show individual stories")
+@click.pass_context
+def labels_list(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                filter_summary, filter_assignee, filter_points_min, filter_points_max, show_stories):
+    """List all labels with usage counts, optionally filtered."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    label_map: dict[str, list[JiraStory]] = {}
+    for s in matched:
+        for l in s.labels:
+            label_map.setdefault(l, []).append(s)
+    unlabeled = [s for s in matched if not s.labels]
+    click.echo(f"\n  🏷️  {len(label_map)} labels sur {len(matched)} stories ({len(unlabeled)} sans label)")
+    click.echo(f"  {'─'*55}")
+    for l in sorted(label_map, key=lambda x: (-len(label_map[x]), x)):
+        pts = sum(s.story_points for s in label_map[l])
+        click.echo(f"  {l:30s} {len(label_map[l]):4d} stories  {pts:5d} pts")
+        if show_stories:
+            for s in label_map[l][:10]:
+                click.echo(f"      {s.key} — {s.summary[:50]} ({s.status}, {s.story_points}pts)")
+            if len(label_map[l]) > 10:
+                click.echo(f"      ... et {len(label_map[l]) - 10} autres")
+    click.echo()
+
+
+def _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                    filter_summary, filter_assignee, filter_points_min, filter_points_max):
+    """Apply regex filters to story list. All filters are AND-combined."""
+    result = stories
+    for pat in filter_status:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if rx.search(s.status)]
+    for pat in filter_sprint:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if rx.search(s.sprint or "")]
+    for pat in filter_label:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if any(rx.search(l) for l in s.labels)]
+    for pat in filter_key:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if rx.search(s.key)]
+    for pat in filter_summary:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if rx.search(s.summary)]
+    for pat in filter_assignee:
+        rx = re.compile(pat, re.I)
+        result = [s for s in result if rx.search(s.assignee or "")]
+    if filter_points_min is not None:
+        result = [s for s in result if s.story_points >= filter_points_min]
+    if filter_points_max is not None:
+        result = [s for s in result if s.story_points <= filter_points_max]
+    return result
+
+
+main.add_command(labels)
 
 
 @main.command("debug-statuses")

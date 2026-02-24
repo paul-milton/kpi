@@ -55,68 +55,76 @@
     <div class="topbox-title">Météo projet</div>
     <div style="font-size:56px;line-height:1.1">{{r.overall_weather.value}}</div>
     <div class="topbox-sub mt-1">{{weather_map[r.overall_weather.value] or '—'}}</div>
-    <div class="grid grid-cols-2 gap-2 mt-3">
-      <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="topbox-sub">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
-        <div class="topbox-label">avancement {{ delta("score_date") }}</div>
+    <div class="topbox-bottom">
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div class="topbox-subcard bg-muted-bg">
+          <div class="topbox-sub">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
+          <div class="topbox-label">avancement {{ delta("score_date") }}</div>
+        </div>
+        <div class="topbox-subcard bg-muted-bg">
+          <div class="topbox-sub">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
+          <div class="topbox-label">temps écoulé</div>
+        </div>
       </div>
-      <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="topbox-sub">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
-        <div class="topbox-label">temps écoulé</div>
-      </div>
+      <div class="topbox-label mt-1.5">avancement / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
     </div>
-    <div class="topbox-label mt-1.5">avancement / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
   </div>
   {# ── CARRÉ TEMPS ── #}
   <div class="topbox">
     <div class="topbox-title">Temps écoulé</div>
     <div class="topbox-value {%if r.time_progress<=0.5%}text-ok{%elif r.time_progress<=0.75%}text-warn{%else%}text-err{%endif%}">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
     <div class="mt-2">{{ tbar(r.time_progress, 200, 12) }}</div>
-    <div class="grid grid-cols-2 gap-2 mt-3">
-      <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="topbox-sub">{{r.business_days_elapsed}} <span class="topbox-label">j</span></div>
-        <div class="topbox-label">jours ouvrés écoulés</div>
+    <div class="topbox-bottom">
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div class="topbox-subcard bg-muted-bg">
+          <div class="topbox-sub">{{r.business_days_elapsed}} <span class="topbox-label">j</span></div>
+          <div class="topbox-label">jours ouvrés écoulés</div>
+        </div>
+        <div class="topbox-subcard {%if r.business_days_remaining<=40%}bg-err-bg{%elif r.business_days_remaining<=80%}bg-warn-bg{%else%}bg-muted-bg{%endif%}">
+          <div class="topbox-sub">{{r.business_days_remaining}} <span class="topbox-label">j</span></div>
+          <div class="topbox-label">jours ouvrés restants</div>
+        </div>
       </div>
-      <div class="rounded {%if r.business_days_remaining<=40%}bg-err-bg{%elif r.business_days_remaining<=80%}bg-warn-bg{%else%}bg-muted-bg{%endif%} px-2 py-1.5">
-        <div class="topbox-sub">{{r.business_days_remaining}} <span class="topbox-label">j</span></div>
-        <div class="topbox-label">jours ouvrés restants</div>
-      </div>
+      <div class="topbox-label mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
     </div>
-    <div class="topbox-label mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
   </div>
   {# ── CARRÉ SCORE PROJET À DATE ── #}
   <div class="topbox">
     <div class="topbox-title">Score projet à date</div>
     <div class="topbox-value {%if r.score_global_date>=0.5%}text-ok{%elif r.score_global_date>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_date*100)|round(0)|int}}&nbsp;% {{ delta("score_date") }}</div>
     <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
-    <div class="grid grid-cols-2 gap-2 mt-3">
-      <div class="rounded bg-ok-bg px-2 py-1.5">
-        <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">livrables terminés {{ delta("terminés") }}</div>
+    <div class="topbox-bottom">
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div class="topbox-subcard bg-ok-bg">
+          <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
+          <div class="topbox-label">livrables terminés {{ delta("terminés") }}</div>
+        </div>
+        <div class="topbox-subcard bg-muted-bg">
+          <div class="topbox-sub">{{r.date_total_points}} <span class="topbox-label">points</span></div>
+          <div class="topbox-label">livrables planifiés à date</div>
+        </div>
       </div>
-      <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="topbox-sub">{{r.date_total_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">livrables planifiés à date</div>
-      </div>
+      <div class="topbox-label mt-1.5">avancement pondéré des livrables planifiés jusqu'au sprint courant</div>
     </div>
-    <div class="topbox-label mt-1.5">avancement pondéré des livrables planifiés jusqu'au sprint courant</div>
   </div>
   {# ── CARRÉ SCORE GLOBAL D'AVANCEMENT ── #}
   <div class="topbox">
     <div class="topbox-title">Score global d'avancement</div>
     <div class="topbox-value {%if r.score_global_project>=0.5%}text-ok{%elif r.score_global_project>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_project*100)|round(0)|int}}&nbsp;% {{ delta("score_projet") }}</div>
     <div class="mt-2">{{ pbar(r.score_global_project, 200, 12, 0) }}</div>
-    <div class="grid grid-cols-2 gap-2 mt-3">
-      <div class="rounded bg-ok-bg px-2 py-1.5">
-        <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">livrables terminés</div>
+    <div class="topbox-bottom">
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div class="topbox-subcard bg-ok-bg">
+          <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
+          <div class="topbox-label">livrables terminés</div>
+        </div>
+        <div class="topbox-subcard bg-muted-bg">
+          <div class="topbox-sub">{{r.done_points + r.estimated_remaining}} <span class="topbox-label">points</span></div>
+          <div class="topbox-label">total livrables estimé</div>
+        </div>
       </div>
-      <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="topbox-sub">{{r.done_points + r.estimated_remaining}} <span class="topbox-label">points</span></div>
-        <div class="topbox-label">total livrables estimé</div>
-      </div>
+      <div class="topbox-label mt-1.5">complétude structurelle de tous les livrables (incluant projections)</div>
     </div>
-    <div class="topbox-label mt-1.5">complétude structurelle de tous les livrables (incluant projections)</div>
   </div>
 </div>
 <div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
@@ -132,22 +140,27 @@
 </div>
 {%- endmacro -%}
 
-{# ── Tableau unifié : domaine + météo + score structurel + bloqués ── #}
+{# ── Tableau unifié : domaine + météo + score structurel + variation + bloqués ── #}
 {%- macro unified_tree(tags, lvl=0, parent='') -%}
 {%- for t in tags -%}
 {%- if t.total_points > 0 or t.children|selectattr("total_points","gt",0)|list -%}
 {%- set nid = parent ~ '-' ~ loop.index0 if parent else 'n' ~ loop.index0 -%}
 {%- set has_kids = t.children|selectattr("total_points","gt",0)|list|length > 0 -%}
 {%- set has_stories = t.stories|length > 0 if t.stories else false -%}
+{%- set td_key = 'Tag: ' ~ t.label -%}
+{%- set td_entry = TD.get(td_key) if TD is defined else none -%}
 <tr class="d{{lvl}}{%if lvl>0%} kid p-{{parent}}{%endif%}" data-nid="{{nid}}">
   <td style="padding-left:{{lvl*18+6}}px">{%- if has_kids -%}<span class="tog" onclick="fold('{{nid}}')">{{t.display or t.label}}</span>{%- else -%}{%if lvl>0%}&#x2514; {%endif%}{{t.display or t.label}}{%- endif -%}{%- if has_stories and lvl >= 1 %} <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('{{nid}}')" title="stories">&#x1F4CB;</span>{%- endif -%}</td>
   <td class="n">{%if t.total_points%}{{t.weather.value}}{%endif%}</td>
   <td>{%if t.total_points%}{{ pbar(t.score, 100, 12, 11) }}{%endif%}</td>
+  {%- if TD is defined -%}
+  <td class="n" style="font-size:11px;font-weight:700">{%- if td_entry -%}{%- set dp = ((td_entry.current - td_entry.previous)*100)|round(1) -%}<span class="{%if dp>0%}v-pos{%elif dp<0%}v-neg{%else%}v-zero{%endif%}">{%if dp>0%}+{%endif%}{{dp}}%</span>{%- endif -%}</td>
+  {%- endif -%}
   <td class="db{%if t.breakdown.blocked > 0%} dbv{%endif%}">{%if t.breakdown.blocked > 0%}{{t.breakdown.blocked}}{%endif%}</td>
 </tr>
 {%- if has_stories and lvl >= 1 -%}
 <tr class="kid p-{{parent}} hid" id="dw-{{nid}}">
-  <td colspan="4"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr>
+  <td colspan="{%if TD is defined%}5{%else%}4{%endif%}"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr>
   {%- for skey in t.stories -%}{%- if skey in SM -%}{%- set s = SM[skey] -%}
   <tr><td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td><td>{{s.summary}}</td><td>{{s.status.value}}</td><td class="n">{{s.story_points}}</td><td style="font-size:9px">{{s.labels|join(', ')}}</td></tr>
   {%- endif -%}{%- endfor -%}

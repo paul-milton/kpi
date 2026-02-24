@@ -70,9 +70,9 @@
       <div class="kcard-unit">points</div>
     </div>
     <div class="kcard bg-err-bg">
-      <div class="kcard-title">User stories bloquées</div>
-      <div class="kcard-value">{{r.blocked_stories|length}}</div>
-      <div class="kcard-unit">user stories</div>
+      <div class="kcard-title">Points bloqués</div>
+      <div class="kcard-value">{{r.blocked_stories|sum(attribute='story_points')}}</div>
+      <div class="kcard-unit">points</div>
       {{ delta("bloquées") }}
     </div>
     <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
@@ -101,6 +101,8 @@
 
 {# ══════════ AVANCEMENT PAR DOMAINE ══════════ #}
 {%if r.tag_scores%}
+{%- set TD = {} -%}
+{%- for c in r.comparisons if c.label.startswith('Tag: ') -%}{%- if TD.update({c.label: c}) -%}{%- endif -%}{%- endfor -%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
@@ -109,14 +111,16 @@
       <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
       <li>Pondéré par le poids en story points de chaque livrable</li>
       <li>Reflète l'avancement réel, pas seulement le nombre de livrables terminés</li>
+      {%if TD%}<li><strong>Variation</strong>&nbsp;: évolution du score par rapport à la période précédente (<span class="v-pos">vert = progression</span>, <span class="v-neg">rouge = régression</span>)</li>{%endif%}
     </ul>
   </div>
   <table class="w-full border-collapse text-xs">
   <thead><tr>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[200px]">Domaine</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Météo</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border min-w-[140px]">Score structurel</th>
-    <th class="bg-err-bg text-left px-2 py-1 font-semibold border-b-2 border-border">US bloquées</th>
+    <th class="th th-default min-w-[200px]">Domaine</th>
+    <th class="th th-default">Météo</th>
+    <th class="th th-default min-w-[140px]">Score structurel</th>
+    {%if TD%}<th class="th th-accent text-center">Variation</th>{%endif%}
+    <th class="th th-err">US bloquées</th>
   </tr></thead>
   <tbody>{{ unified_tree(r.tag_scores) }}</tbody>
   </table>
@@ -129,14 +133,14 @@
   <h2 class="section-title">&#x1F4C8; Projection — {{r.raf.avg_velocity_per_week}} pts/sem</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Terminés</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Restant (+10&nbsp;%)</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Sem. écoulées</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Sem. restantes</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Capacité</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Échéance</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Besoin/sem</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Statut</th>
+    <th class="th th-default whitespace-nowrap">Terminés</th>
+    <th class="th th-default whitespace-nowrap">Restant (+10&nbsp;%)</th>
+    <th class="th th-default whitespace-nowrap">Sem. écoulées</th>
+    <th class="th th-default whitespace-nowrap">Sem. restantes</th>
+    <th class="th th-default whitespace-nowrap">Capacité</th>
+    <th class="th th-default whitespace-nowrap">Échéance</th>
+    <th class="th th-default whitespace-nowrap">Besoin/sem</th>
+    <th class="th th-default whitespace-nowrap">Statut</th>
   </tr>
   <tr>
     <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">{{r.done_points}} pts</td>
@@ -158,9 +162,9 @@
   <h2 class="section-title">&#x1F3C3; Vélocité</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border"></th>
+    <th class="th th-default"></th>
     {%for v in r.velocities%}<th class="bg-muted-bg text-center px-2 py-1 font-semibold border-b-2 border-border">{{v.sprint_name}}</th>{%endfor%}
-    <th class="bg-accent-bg text-center px-2 py-1 font-semibold border-b-2 border-border">Moyenne</th>
+    <th class="th th-accent text-center">Moyenne</th>
   </tr>
   <tr>
     <td class="px-2 py-1 border-b border-gray-100 font-bold">pts / semaine</td>
@@ -177,10 +181,10 @@
   <h2 class="section-title">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Clé</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Résumé</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Points</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Assigné</th>
+    <th class="th th-default">Clé</th>
+    <th class="th th-default">Résumé</th>
+    <th class="th th-default">Points</th>
+    <th class="th th-default">Assigné</th>
   </tr>
   {%for s in r.blocked_stories%}
   <tr class="bg-err-bg">
