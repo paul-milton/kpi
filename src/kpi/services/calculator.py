@@ -127,7 +127,7 @@ class KPICalculator:
         # Time-relative weather: adjust for project phase
         relative_ratio = ratio / time_progress if time_progress > 0 else ratio
 
-        variations = self._vars(total_pts, done_pts, len(blocked), previous)
+        variations = self._vars(total_pts, done_pts, len(blocked), previous)  # extended below with scores
 
         # Tag scores: structural advancement per dimension (Story 1-1)
         cur_sprint_name = f"Sprint {snum}"
@@ -139,6 +139,7 @@ class KPICalculator:
         # "À date": only stories in current or past sprints
         past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
         date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
+        date_total_pts = sum(s.story_points for s in date_stories)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
         score_global_date = self._score_global(tag_scores_date)
 
@@ -154,6 +155,13 @@ class KPICalculator:
 
         # Complementary KPIs (Story 1-6)
         complementary_kpis = self._complementary_kpis(live, tag_scores)
+
+        # Score variations (as integer %, for delta display)
+        if previous:
+            variations.extend([
+                Variation(label="score_date", current=round(score_global_date * 100), previous=round(previous.score_global_date * 100)),
+                Variation(label="score_projet", current=round(score_global_project * 100), previous=round(previous.score_global_project * 100)),
+            ])
 
         # Period comparison (Story 1-8)
         comparisons = self._comparisons(
@@ -178,6 +186,7 @@ class KPICalculator:
             business_days_remaining=business_days_france(date.today(), parse_date(self._pcfg.get("end_date", "2026-09-30"))),
             sprint_duration_weeks=self._sw,
             tag_scores=tag_scores,
+            date_total_points=date_total_pts,
             score_global_date=round(score_global_date, 4),
             score_global_project=round(score_global_project, 4),
             projection=projection,

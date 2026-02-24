@@ -10,7 +10,7 @@
 <body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
 <div class="max-w-[1300px] mx-auto">
 
-{# ══════════ DEUX CARRÉS : % TEMPS + SCORE GLOBAL ══════════ #}
+{# ══════════ TROIS CARRÉS : TEMPS + SCORE À DATE + SCORE PROJET ══════════ #}
 {{ top_boxes() }}
 
 {# ══════════ EN-TÊTE ══════════ #}
@@ -20,95 +20,90 @@
   {# Synthèse #}
   {%if r.raf%}
   {%- set gap = (r.raf.avg_velocity_per_week - r.raf.velocity_needed_per_week)|round(1) -%}
-  <div class="font-bold text-[10px] text-muted uppercase tracking-wider mt-1 mb-1.5 ml-0.5">&#x1F4CA; Synthèse <span class="font-normal">(restant projeté inclut +10&nbsp;% marge de sécurité)</span></div>
-  <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2">
-    <div class="rounded-lg p-4 text-center {{ status_bg(r.raf.on_track) }}">
-      <span class="text-[28px] font-bold leading-tight block">{%if r.raf.on_track%}&#x2705;{%else%}&#x26A0;&#xFE0F;{%endif%}</span>
+  {%- set gap_pct = ((gap / r.raf.velocity_needed_per_week) * 100)|round(0)|int if r.raf.velocity_needed_per_week else 0 -%}
+  <div class="sub-title mt-1 mb-2 ml-0.5">&#x1F4CA; Synthèse <span class="text-[11px] font-normal text-muted">(restant projeté inclut +10&nbsp;% marge)</span></div>
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
+    <div class="kcard kcard-lg {{ status_bg(r.raf.on_track) }}">
+      <div class="kcard-title">Statut</div>
+      <div class="kcard-value" style="font-size:28px">{%if r.raf.on_track%}&#x2705;{%else%}&#x26A0;&#xFE0F;{%endif%}</div>
       <span class="text-[11px] font-semibold block mt-1">{%if r.raf.on_track%}en bonne voie{%else%}vigilance requise{%endif%}</span>
     </div>
-    <div class="rounded-lg p-4 text-center {%if r.raf.avg_velocity_per_week >= r.raf.velocity_needed_per_week%}bg-ok-bg{%else%}bg-err-bg{%endif%}">
-      <span class="text-[26px] font-bold leading-tight block">{{r.raf.avg_velocity_per_week}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">pts / semaine (réel)</span>
+    <div class="kcard kcard-lg {%if r.raf.avg_velocity_per_week >= r.raf.velocity_needed_per_week%}bg-ok-bg{%else%}bg-err-bg{%endif%}">
+      <div class="kcard-title">Vélocité réelle</div>
+      <div class="kcard-value">{{r.raf.avg_velocity_per_week}}</div>
+      <div class="kcard-unit">points par semaine</div>
     </div>
-    <div class="rounded-lg p-4 text-center bg-muted-bg">
-      <span class="text-[26px] font-bold leading-tight block">{{r.raf.velocity_needed_per_week}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">pts / semaine (requis)</span>
-    </div>
-    <div class="rounded-lg p-4 text-center {%if gap >= 0%}bg-ok-bg{%else%}bg-err-bg{%endif%}">
-      <span class="text-[26px] font-bold leading-tight block">{%if gap > 0%}+{%endif%}{{gap}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">écart pts / semaine</span>
+    <div class="kcard kcard-lg bg-muted-bg">
+      <div class="kcard-title">Points nécessaires par semaine</div>
+      <div class="kcard-value">{{r.raf.velocity_needed_per_week}}</div>
+      <span class="text-[10px] block mt-0.5">écart <span class="{%if gap>=0%}v-pos{%else%}v-neg{%endif%}">{%if gap>0%}+{%endif%}{{gap}} ({%if gap_pct>0%}+{%endif%}{{gap_pct}}%)</span></span>
     </div>
     {%if r.raf.unestimated_count%}
-    <div class="rounded-lg p-4 text-center bg-warn-bg">
-      <span class="text-[26px] font-bold leading-tight block">+{{r.raf.unestimated_padding}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">{{r.raf.unestimated_count}} US non estimées</span>
+    <div class="kcard kcard-lg bg-warn-bg">
+      <div class="kcard-title">Non estimées</div>
+      <div class="kcard-value">+{{r.raf.unestimated_padding}}</div>
+      <div class="kcard-unit">{{r.raf.unestimated_count}} user stories sans estimation</div>
     </div>
     {%endif%}
   </div>
   {%endif%}
 
   {# Story points + User stories — colonnes alignées #}
+  {%- set active_pts = r.all_stories|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
+  {%- set weighted_pts = (active_pts * 0.5)|round(0)|int -%}
+  {%- set projet_estime = r.done_points + r.estimated_remaining -%}
   <div class="grid grid-cols-4 gap-2 mt-3">
-    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4">&#x1F3AF; Story points</div>
-    <div class="rounded-lg p-3 text-center bg-ok-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.done_points}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminés</span>
+    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points</div>
+    <div class="kcard bg-ok-bg">
+      <div class="kcard-title">Points terminés</div>
+      <div class="kcard-value">{{r.done_points}}</div>
+      <div class="kcard-unit">points</div>
       {{ delta("terminés") }}
     </div>
-    <div class="rounded-lg p-3 text-center bg-warn-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.estimated_remaining}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F504; restant projeté</span>
-      {{ delta("points") }}
+    <div class="kcard bg-accent-bg">
+      <div class="kcard-title">Points en cours pondérés</div>
+      <div class="kcard-value">{{weighted_pts}}</div>
+      <div class="kcard-unit">points ({{active_pts}}&nbsp;×&nbsp;50%)</div>
     </div>
-    <div class="rounded-lg p-3 text-center bg-muted-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.total_points}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">total</span>
+    <div class="kcard bg-muted-bg">
+      <div class="kcard-title">Total projet estimé</div>
+      <div class="kcard-value">{{projet_estime}}</div>
+      <div class="kcard-unit">points</div>
     </div>
-    <div class="rounded-lg p-3 text-center bg-err-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; US bloquées</span>
+    <div class="kcard bg-err-bg">
+      <div class="kcard-title">User stories bloquées</div>
+      <div class="kcard-value">{{r.blocked_stories|length}}</div>
+      <div class="kcard-unit">user stories</div>
       {{ delta("bloquées") }}
     </div>
-    <div class="font-bold text-[10px] text-muted uppercase tracking-wider ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
-    <div class="rounded-lg p-3 text-center bg-ok-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['done','delivered'])|list|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x2705; terminées</span>
+    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
+    <div class="kcard bg-ok-bg">
+      <div class="kcard-title">Terminées</div>
+      <div class="kcard-value">{{r.all_stories|selectattr('status','in',['done','delivered'])|list|length}}</div>
+      <div class="kcard-unit">user stories</div>
     </div>
-    <div class="rounded-lg p-3 text-center bg-accent-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|selectattr('status','in',['in-progress','review','testing'])|list|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F504; en cours</span>
+    <div class="kcard bg-accent-bg">
+      <div class="kcard-title">En cours</div>
+      <div class="kcard-value">{{r.all_stories|selectattr('status','in',['in-progress','review','testing'])|list|length}}</div>
+      <div class="kcard-unit">user stories</div>
     </div>
-    <div class="rounded-lg p-3 text-center bg-muted-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.all_stories|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">total</span>
+    <div class="kcard bg-muted-bg">
+      <div class="kcard-title">Total</div>
+      <div class="kcard-value">{{r.all_stories|length}}</div>
+      <div class="kcard-unit">user stories</div>
     </div>
-    <div class="rounded-lg p-3 text-center bg-err-bg">
-      <span class="text-[22px] font-bold leading-tight block">{{r.blocked_stories|length}}</span>
-      <span class="text-[10px] text-dim block mt-0.5">&#x1F6A8; bloquées</span>
-    </div>
-  </div>
-</div>
-
-{# ══════════ SCORE GLOBAL PROJET ══════════ #}
-<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F3C6; Score global projet</h2>
-  <div class="grid grid-cols-2 gap-4 my-3">
-    <div class="text-center">
-      <div class="text-[10px] text-muted uppercase mb-1">à date</div>
-      {{ pbar(r.score_global_date, 200, 18, 14) }}
-    </div>
-    <div class="text-center">
-      <div class="text-[10px] text-muted uppercase mb-1">global projet</div>
-      {{ pbar(r.score_global_project, 200, 18, 14) }}
+    <div class="kcard bg-err-bg">
+      <div class="kcard-title">Bloquées</div>
+      <div class="kcard-value">{{r.blocked_stories|length}}</div>
+      <div class="kcard-unit">user stories</div>
     </div>
   </div>
-  <div class="pedagogy">Score global projet&nbsp;: {{(r.score_global_project*100)|round(0)|int}}&nbsp;% — complétude structurelle toutes stories confondues (incluant projections futures).</div>
 </div>
 
 {# ══════════ AVANCEMENT PAR DOMAINE ══════════ #}
 {%if r.tag_scores%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
+  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
     <strong>Score structurel</strong> ≠ ratio terminé/total.
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
@@ -132,26 +127,26 @@
 {# ══════════ PROJECTION RAF ══════════ #}
 {%if r.raf%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F4C8; Projection — {{r.raf.avg_velocity_per_week}} points / semaine</h2>
+  <h2 class="section-title">&#x1F4C8; Projection — {{r.raf.avg_velocity_per_week}} pts/sem</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Points terminés</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Restant projeté (+10&nbsp;%)</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Semaines écoulées</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Semaines restantes</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Capacité restante</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Terminés</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Restant (+10&nbsp;%)</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Sem. écoulées</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Sem. restantes</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Capacité</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Échéance</th>
-    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Besoin / semaine</th>
+    <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Besoin/sem</th>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border whitespace-nowrap">Statut</th>
   </tr>
   <tr>
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">{{r.done_points}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.estimated_remaining}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_done}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_remaining}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold {{ status_bg(r.raf.on_track) }}">{{(r.raf.avg_velocity_per_week * r.raf.weeks_remaining)|round(0)|int}} points</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">{{r.done_points}} pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.estimated_remaining}} pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_done}} sem</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.weeks_remaining}} sem</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold {{ status_bg(r.raf.on_track) }}">{{(r.raf.avg_velocity_per_week * r.raf.weeks_remaining)|round(0)|int}} pts</td>
     <td class="px-2 py-1 border-b border-gray-100 text-center">{{r.raf.project_deadline.strftime('%d/%m/%Y') if r.raf.project_deadline}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.raf.velocity_needed_per_week}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{r.raf.velocity_needed_per_week}} pts/sem</td>
     <td class="px-2 py-1 border-b border-gray-100 text-center {{ status_bg(r.raf.on_track) }}">{%if r.raf.on_track%}&#x2705;{%else%}&#x1F6A8;{%endif%}</td>
   </tr>
   </table>
@@ -161,7 +156,7 @@
 {# ══════════ VÉLOCITÉ ══════════ #}
 {%if r.velocities%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F3C3; Vélocité (points / semaine)</h2>
+  <h2 class="section-title">&#x1F3C3; Vélocité</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border"></th>
@@ -169,7 +164,7 @@
     <th class="bg-accent-bg text-center px-2 py-1 font-semibold border-b-2 border-border">Moyenne</th>
   </tr>
   <tr>
-    <td class="px-2 py-1 border-b border-gray-100 font-bold">points / semaine</td>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">pts / semaine</td>
     {%for v in r.velocities%}<td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{v.completed_per_week}}</td>{%endfor%}
     <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{(r.velocities|map(attribute='completed_per_week')|sum/r.velocities|length)|round(1)}}</td>
   </tr>
@@ -180,7 +175,7 @@
 {# ══════════ BLOQUÉS ══════════ #}
 {%if r.blocked_stories%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="text-sm text-[#253858] font-semibold border-b-2 border-border pb-1 mb-2.5">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} ({{r.blocked_stories|sum(attribute='story_points')}} points)</h2>
+  <h2 class="section-title">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="bg-muted-bg text-left px-2 py-1 font-semibold border-b-2 border-border">Clé</th>
@@ -192,7 +187,7 @@
   <tr class="bg-err-bg">
     <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td>
     <td class="px-2 py-1 border-b border-gray-100">{{s.summary}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center">{{s.story_points}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{s.story_points}} pts</td>
     <td class="px-2 py-1 border-b border-gray-100">{{s.assignee or '—'}}</td>
   </tr>
   {%endfor%}

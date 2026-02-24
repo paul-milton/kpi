@@ -2,10 +2,10 @@
 
 {%- macro delta(label) -%}
 {%- for v in r.variations if v.label==label -%}
-<span class="text-[10px] font-semibold mt-1 inline-block px-1.5 rounded-sm
-  {%- if v.delta>0 %} text-ok bg-ok-bg
-  {%- elif v.delta<0 %} text-err bg-err-bg
-  {%- else %} text-muted bg-muted-bg{%- endif %}">
+<span class="text-[10px] mt-1 inline-block px-1.5 rounded-sm
+  {%- if v.delta>0 %} v-pos bg-ok-bg
+  {%- elif v.delta<0 %} v-neg bg-err-bg
+  {%- else %} v-zero bg-muted-bg{%- endif %}">
   {{- v.delta_str -}}
 </span>
 {%- endfor -%}
@@ -19,42 +19,94 @@
 {%- macro ratio_bg(r) -%}{%if r>=0.5%}bg-ok-bg{%elif r>=0.25%}bg-warn-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
 {%- macro status_bg(r) -%}{%if r%}bg-ok-bg{%else%}bg-err-bg{%endif%}{%- endmacro -%}
 
-{# ── Deux carrés : % temps + score global ── #}
+{# ── Barre temps (inversée : début=vert, fin=rouge) ── #}
+{%- macro tbar(ratio, w=200, h=12) -%}
+<div class="bar" style="width:{{w}}px;height:{{h}}px"><div class="fill {%if ratio<=0.5%}cg{%elif ratio<=0.75%}co{%else%}cr{%endif%}" style="width:{{(ratio*w)|int}}px;height:{{h}}px"></div></div>
+{%- endmacro -%}
+
+{# ── Étoiles /5 avec couleur ── #}
+{%- macro stars5(score, size=32) -%}
+{%- set val = (score * 5)|round(1) -%}
+{%- set full = val|int -%}
+{%- set clr = '#36B37E' if val>=3.5 else '#FF991F' if val>=2 else '#DE350B' -%}
+<span style="font-size:{{size}}px;color:{{clr}};letter-spacing:2px">
+{%- for i in range(full) %}&#x2605;{%- endfor -%}
+{%- for i in range(5 - full) %}&#x2606;{%- endfor -%}
+</span>
+<span style="font-size:{{(size*0.5)|int}}px;font-weight:700;color:{{clr}};margin-left:4px">{{val}}/5</span>
+{%- endmacro -%}
+
+{# ── Quatre carrés : météo + % temps + score à date + score global projet ── #}
 {%- macro top_boxes() -%}
-<div class="grid grid-cols-2 gap-3 mb-3">
-  {# ── CARRÉ TEMPS ── #}
-  <div class="bg-white rounded-lg shadow-sm p-5 text-center">
-    <div class="text-[10px] text-muted uppercase tracking-wider mb-2">% temps écoulé</div>
-    <div class="text-[32px] font-bold leading-tight">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
-    <div class="mt-2">{{ pbar(r.time_progress, 200, 12, 0) }}</div>
+{%- set weather_map = {'☀️':'Ensoleillé','⛅':'Partiellement couvert','🌥️':'Couvert','🌧️':'Pluvieux','⛈️':'Orageux'} -%}
+<div class="grid grid-cols-4 gap-3 mb-3">
+  {# ── CARRÉ MÉTÉO ── #}
+  <div class="topbox">
+    <div class="topbox-title">Météo projet</div>
+    <div style="font-size:56px;line-height:1.1">{{r.overall_weather.value}}</div>
+    <div class="topbox-sub mt-1">{{weather_map[r.overall_weather.value] or '—'}}</div>
     <div class="grid grid-cols-2 gap-2 mt-3">
       <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="text-[16px] font-bold">{{r.business_days_elapsed}}</div>
-        <div class="text-[9px] text-muted">jours ouvrés écoulés</div>
+        <div class="topbox-sub">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
+        <div class="topbox-label">score à date {{ delta("score_date") }}</div>
       </div>
-      <div class="rounded {%if r.business_days_remaining<=40%}bg-err-bg{%elif r.business_days_remaining<=80%}bg-warn-bg{%else%}bg-muted-bg{%endif%} px-2 py-1.5">
-        <div class="text-[16px] font-bold">{{r.business_days_remaining}}</div>
-        <div class="text-[9px] text-muted">jours ouvrés restants</div>
+      <div class="rounded bg-muted-bg px-2 py-1.5">
+        <div class="topbox-sub">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
+        <div class="topbox-label">temps écoulé</div>
       </div>
     </div>
-    <div class="text-[9px] text-muted mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
+    <div class="topbox-label mt-1.5">score / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
   </div>
-  {# ── CARRÉ SCORE ── #}
-  <div class="bg-white rounded-lg shadow-sm p-5 text-center">
-    <div class="text-[10px] text-muted uppercase tracking-wider mb-2">Score global d'avancement au {{r.generated_at.strftime('%d/%m/%Y')}}</div>
-    <div class="text-[32px] font-bold leading-tight">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
+  {# ── CARRÉ TEMPS ── #}
+  <div class="topbox">
+    <div class="topbox-title">% temps écoulé</div>
+    <div class="topbox-value {%if r.time_progress<=0.5%}text-ok{%elif r.time_progress<=0.75%}text-warn{%else%}text-err{%endif%}">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
+    <div class="mt-2">{{ tbar(r.time_progress, 200, 12) }}</div>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <div class="rounded bg-muted-bg px-2 py-1.5">
+        <div class="topbox-sub">{{r.business_days_elapsed}} <span class="topbox-label">j</span></div>
+        <div class="topbox-label">jours ouvrés écoulés</div>
+      </div>
+      <div class="rounded {%if r.business_days_remaining<=40%}bg-err-bg{%elif r.business_days_remaining<=80%}bg-warn-bg{%else%}bg-muted-bg{%endif%} px-2 py-1.5">
+        <div class="topbox-sub">{{r.business_days_remaining}} <span class="topbox-label">j</span></div>
+        <div class="topbox-label">jours ouvrés restants</div>
+      </div>
+    </div>
+    <div class="topbox-label mt-1.5">{{r.project_start}} → {{r.project_end}}</div>
+  </div>
+  {# ── CARRÉ SCORE À DATE ── #}
+  <div class="topbox">
+    <div class="topbox-title">Score à date</div>
+    <div class="topbox-value {%if r.score_global_date>=0.5%}text-ok{%elif r.score_global_date>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_date*100)|round(0)|int}}&nbsp;% {{ delta("score_date") }}</div>
     <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
     <div class="grid grid-cols-2 gap-2 mt-3">
       <div class="rounded bg-ok-bg px-2 py-1.5">
-        <div class="text-[16px] font-bold">{{r.done_points}}</div>
-        <div class="text-[9px] text-muted">pts terminés</div>
+        <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
+        <div class="topbox-label">terminés {{ delta("terminés") }}</div>
       </div>
       <div class="rounded bg-muted-bg px-2 py-1.5">
-        <div class="text-[16px] font-bold">{{r.total_points}}</div>
-        <div class="text-[9px] text-muted">pts total</div>
+        <div class="topbox-sub">{{r.date_total_points}} <span class="topbox-label">points</span></div>
+        <div class="topbox-label">total planifié à date</div>
       </div>
     </div>
-    <div class="text-[9px] text-muted mt-1.5">{{r.overall_weather.value}} score pondéré — ratio brut&nbsp;: {{(r.overall_completion*100)|round(0)|int}}&nbsp;%</div>
+    <div class="topbox-label mt-1.5">score pondéré — ratio brut&nbsp;: {{(r.overall_completion*100)|round(0)|int}}&nbsp;%</div>
+  </div>
+  {# ── CARRÉ SCORE GLOBAL PROJET ── #}
+  <div class="topbox">
+    <div class="topbox-title">Score global projet</div>
+    <div class="topbox-value {%if r.score_global_project>=0.5%}text-ok{%elif r.score_global_project>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_project*100)|round(0)|int}}&nbsp;% {{ delta("score_projet") }}</div>
+    <div class="mt-2">{{ pbar(r.score_global_project, 200, 12, 0) }}</div>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <div class="rounded bg-ok-bg px-2 py-1.5">
+        <div class="topbox-sub">{{r.done_points}} <span class="topbox-label">points</span></div>
+        <div class="topbox-label">terminés</div>
+      </div>
+      <div class="rounded bg-muted-bg px-2 py-1.5">
+        <div class="topbox-sub">{{r.done_points + r.estimated_remaining}} <span class="topbox-label">points</span></div>
+        <div class="topbox-label">total projet estimé</div>
+      </div>
+    </div>
+    <div class="topbox-label mt-1.5">complétude structurelle toutes stories (incluant projections)</div>
   </div>
 </div>
 <div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
@@ -62,8 +114,8 @@
     <strong>Score global</strong> ≠ ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
       <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
-      <li>Ne compte que les livrables planifiés jusqu'à la période en cours</li>
-      <li>Mesure l'avancement réel par rapport aux jalons prévus à date</li>
+      <li><strong>À date</strong>&nbsp;: ne compte que les livrables planifiés jusqu'à la période en cours</li>
+      <li><strong>Global projet</strong>&nbsp;: inclut toutes les stories + projections futures</li>
     </ul>
   </div>
 </div>

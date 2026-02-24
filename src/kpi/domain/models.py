@@ -272,6 +272,8 @@ class Snapshot(BaseModel):
     completion_ratio: float = 0.0
     avg_velocity_per_week: float = 0.0
     score_global: float = 0.0
+    score_global_date: float = 0.0
+    score_global_project: float = 0.0
     tag_scores: dict[str, float] = Field(default_factory=dict)  # label → score
     backlog_variation: float = 0.0
 
@@ -306,6 +308,7 @@ class WeeklyReport(BaseModel):
     business_days_remaining: int = 0  # jours ouvrés France restants
     sprint_duration_weeks: int = 3
     tag_scores: list[TagScore] = Field(default_factory=list)
+    date_total_points: int = 0             # total points of stories in current/past sprints
     score_global_date: float = 0.0       # weighted avg of tag scores (current/past sprints only)
     score_global_project: float = 0.0    # weighted avg of tag scores (all stories, smoothed)
     projection: ProjectionEstimate | None = None

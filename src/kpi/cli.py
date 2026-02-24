@@ -58,6 +58,8 @@ def _snap(r, store):
         blocked_count=len(r.blocked_stories), completion_ratio=r.overall_completion,
         avg_velocity_per_week=r.raf.avg_velocity_per_week if r.raf else 0,
         score_global=r.score_global_project,
+        score_global_date=r.score_global_date,
+        score_global_project=r.score_global_project,
         tag_scores={ts.label: ts.score for ts in r.tag_scores if ts.total_points > 0},
         backlog_variation=r.backlog_stability.variation_project if r.backlog_stability else 0.0))
 
