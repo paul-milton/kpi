@@ -105,6 +105,21 @@ def generate(ctx, date_from, date_to):
     click.echo(f"  📄 {t}")
 
 
+@main.command()
+@click.option("--port", default=8000, type=int, help="Server port (default 8000)")
+@click.option("--cache-ttl", default=300, type=int, help="Cache TTL in seconds (default 300)")
+@click.pass_context
+def serve(ctx, port, cache_ttl):
+    """Start a local web server with live KPI reports."""
+    import uvicorn
+    from kpi.server import create_app
+    cfg = ctx.obj["cfg"]
+    app = create_app(cfg=cfg, cache_ttl=cache_ttl)
+    click.echo(f"  KPI server on http://localhost:{port} (cache TTL={cache_ttl}s)")
+    click.echo(f"  Routes: /preview  /date  /project")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level=ctx.obj["log_level"].lower())
+
+
 @main.command("report-date")
 @click.option("-o", "--output", default=None, help="Output HTML file")
 @click.pass_context

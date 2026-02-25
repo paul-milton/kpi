@@ -1541,6 +1541,47 @@ t("jira_notify_flag", '_notify' in ja2 and 'notify_users' in ja2)
 t("jira_notify_in_api", 'notifyUsers' in ja2)
 t("jira_update_issue_method", 'def _update_issue' in ja2)
 
+# ═══════════════════════════════════════════════════════
+# FASTAPI SERVER: Story 2-9 — live server with caching
+# ═══════════════════════════════════════════════════════
+with open(os.path.join(BASE, 'server.py')) as f: server_code=f.read()
+
+# Server module exists with FastAPI app
+t("server_module_exists", 'FastAPI' in server_code)
+t("server_create_app", 'def create_app' in server_code)
+
+# Routes
+t("server_route_root", '"/"' in server_code or "'/'")
+t("server_route_preview", '"/preview"' in server_code)
+t("server_route_date", '"/date"' in server_code)
+t("server_route_project", '"/project"' in server_code)
+t("server_redirect_root", 'RedirectResponse' in server_code)
+
+# Caching headers
+t("server_etag", 'ETag' in server_code)
+t("server_last_modified", 'Last-Modified' in server_code)
+t("server_cache_control", 'Cache-Control' in server_code)
+t("server_304", '304' in server_code)
+t("server_if_none_match", 'if-none-match' in server_code)
+t("server_if_modified_since", 'if-modified-since' in server_code)
+
+# TTL cache
+t("server_cache_ttl", 'cache_ttl' in server_code)
+t("server_ttl_check", 'cache_ttl' in server_code and 'time.time' in server_code)
+
+# CLI: serve command
+with open(os.path.join(BASE, 'cli.py')) as f: cli_serve=f.read()
+t("cli_serve_cmd", 'def serve' in cli_serve)
+t("cli_serve_port", '--port' in cli_serve)
+t("cli_serve_cache_ttl_opt", '--cache-ttl' in cli_serve)
+t("cli_serve_uvicorn", 'uvicorn' in cli_serve)
+t("cli_serve_create_app", 'create_app' in cli_serve)
+
+# pyproject.toml: fastapi + uvicorn deps
+with open(os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml')) as f: pyp=f.read()
+t("dep_fastapi", 'fastapi' in pyp)
+t("dep_uvicorn", 'uvicorn' in pyp)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

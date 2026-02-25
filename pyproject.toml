@@ -16,6 +16,8 @@ click = "^8.1.0"
 pydantic = "^2.5.0"
 tinydb = "^4.8.0"
 python-dateutil = "^2.9.0"
+fastapi = "^0.115.0"
+uvicorn = {version = "^0.34.0", extras = ["standard"]}
 
 [tool.poetry.group.nlp]
 optional = true
