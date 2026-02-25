@@ -142,22 +142,26 @@ class JiraAdapter:
         return None
 
     def _classify_types(self, issue_types: list[dict]) -> dict[str, list[str]]:
-        """Classify issue types into stories and tasks."""
-        stories, tasks = [], []
+        """Classify issue types into stories, tasks, and subtask types."""
+        stories, tasks, subtask_types = [], [], []
         for it in issue_types:
             name = it.get("name", "")
             if not name:
                 continue
             is_subtask = it.get("subtask", False)
             low = name.lower()
-            if is_subtask or any(kw in low for kw in ("task", "tâche", "sous-", "subtask")):
+            if is_subtask:
+                subtask_types.append(name)
+                tasks.append(name)
+            elif any(kw in low for kw in ("task", "tâche", "sous-", "subtask")):
                 tasks.append(name)
             elif any(kw in low for kw in ("story", "récit", "user story", "histoire")):
                 stories.append(name)
             elif not any(kw in low for kw in ("epic", "bug", "défaut", "incident")):
                 stories.append(name)
-        logger.info("discovered_issue_types", stories=stories, tasks=tasks)
-        return {"stories": stories or self._story_types, "tasks": tasks or self._task_types}
+        logger.info("discovered_issue_types", stories=stories, tasks=tasks, subtask_types=subtask_types)
+        return {"stories": stories or self._story_types, "tasks": tasks or self._task_types,
+                "subtask_types": subtask_types}
 
     def debug_issue_types(self) -> list[dict]:
         """Return all discovered issue types for diagnostics."""
@@ -176,6 +180,7 @@ class JiraAdapter:
         discovered = self.fetch_issue_types()
         self._discovered_story_types = discovered["stories"]
         self._discovered_task_types = discovered["tasks"]
+        self._discovered_subtask_types = discovered.get("subtask_types", [])
 
         stories = self._jql_with_type_fallback(self._discovered_story_types)
         if not stories:
@@ -257,7 +262,14 @@ class JiraAdapter:
     def create_subtask(self, parent_key: str, summary: str, labels: list[str] | None = None,
                        story_points: int | None = None) -> str | None:
         """Create a subtask linked to parent_key. Returns new issue key or None."""
-        task_type = self._discovered_task_types[0] if hasattr(self, '_discovered_task_types') and self._discovered_task_types else self._task_types[0]
+        # Prefer actual subtask types (Jira requires issuetype.subtask=true for parent field)
+        subtask_types = getattr(self, '_discovered_subtask_types', [])
+        if subtask_types:
+            task_type = subtask_types[0]
+        elif hasattr(self, '_discovered_task_types') and self._discovered_task_types:
+            task_type = self._discovered_task_types[0]
+        else:
+            task_type = self._task_types[0]
         fields: dict[str, Any] = {
             "project": {"key": self._project},
             "parent": {"key": parent_key},

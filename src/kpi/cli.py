@@ -536,7 +536,7 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
                     existing_envs.add(l.split(":", 1)[1])
             # Also check if subtask summary contains env name
             for env in ENV_NAMES:
-                if f"[{env}]" in child.summary.lower() or f"({env})" in child.summary.lower():
+                if f"[{env}]" in child.summary.lower() or f"(env:{env})" in child.summary.lower() or f"({env})" in child.summary.lower():
                     existing_envs.add(env)
         missing = [e for e in ENV_NAMES if e not in existing_envs]
         if missing:
@@ -567,11 +567,11 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
     created = 0; auto = False
     for s, ops, missing in to_create:
         for env in missing:
-            summary = f"[{env.upper()}] {s.summary}"
+            summary = f"{s.summary} (env:{env})"
             env_labels = [f"env:{env}"] + ops
             if not auto:
                 click.echo(f"  {s.key} → {summary}")
-                r = _confirm_one(f"Créer sous-tâche [{env.upper()}] pour {s.key} ?")
+                r = _confirm_one(f"Créer sous-tâche env:{env} pour {s.key} ?")
                 if r == "q": click.echo(f"\n  🌍 {created}/{total_tasks} sous-tâches créées\n"); return
                 if r == "n": continue
                 if r == "a": auto = True
