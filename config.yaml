@@ -1,6 +1,7 @@
 jira:
   project_key: "KPI"
   story_points_field: "customfield_10106"
+  sprint_field: "customfield_10101"
   # Age (days) beyond which unknown statuses are treated as done
   unknown_status_done_after_days: 21
   # Issue type names (auto-discovered from Jira API, fallback values below)
@@ -17,7 +18,7 @@ jira:
     todo: ["Prêt", "À faire", "A faire", "To Do", "Prêt pour Dev"]
     in-progress: ["En cours", "In Progress", "En développement"]
     review: ["Revue de code", "Code Review", "En revue"]
-    testing: ["Recette", "En recette", "En test", "Test"]
+    testing: ["Recette", "En recette", "En test", "Test", "A valider"]
     blocked: ["Bloqué", "Bloque", "Blocked", "En attente"]
     abandoned: ["Abandonné", "Cancelled", "Annulé"]
     done: ["Terminé", "Fermé", "Done", "Closed", "Résolu", "Resolved"]

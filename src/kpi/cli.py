@@ -1220,6 +1220,27 @@ def debug_sprints(ctx):
     click.echo()
 
 
+@main.command(name="debug-fields")
+@click.option("--keyword", default="sprint", help="Keyword to search in field names/ids")
+@click.pass_context
+def debug_fields(ctx, keyword):
+    """Search Jira fields by keyword to discover custom field IDs."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg)
+    fields = j.debug_fields(keyword)
+    click.echo(f"\n{'='*60}\n  Champs Jira contenant '{keyword}' - {len(fields)} trouvés\n{'='*60}")
+    if not fields:
+        click.echo(f"  ⚠️  Aucun champ trouvé pour '{keyword}'.")
+        click.echo()
+        return
+    for f in fields:
+        custom = " (custom)" if f["custom"] else ""
+        schema = f" schema={f['schema']}" if f["schema"] else ""
+        click.echo(f"  {f['id']:30s} {f['name']:30s}{custom}{schema}")
+    click.echo(f"\n  💡 Utilisez le bon ID dans config.yaml → jira.sprint_field")
+    click.echo()
+
+
 @main.command()
 @click.option("--from", "date_from", default=None, help="Start date ISO")
 @click.option("--to", "date_to", default=None, help="End date ISO")

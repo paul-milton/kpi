@@ -29,6 +29,7 @@ class JiraAdapter:
         self._configured_project = j["project_key"]
         self._status_map = j["status_mapping"]
         self._sp_field = j.get("story_points_field", "customfield_10106")
+        self._sprint_field = j.get("sprint_field", "customfield_10101")
         self._legacy_prefixes = j.get("legacy_label_prefixes", [])
         self._done_after_days = j.get("unknown_status_done_after_days", 21)
         self._sprint_weeks = cfg.get("project", {}).get("sprint_duration_weeks", 3)
@@ -398,6 +399,25 @@ class JiraAdapter:
             logger.warning("debug_boards_error", err=str(e)[:120])
         return result
 
+    def debug_fields(self, keyword: str = "sprint") -> list[dict]:
+        """Search Jira fields matching keyword (name or id). Helps discover custom field IDs."""
+        try:
+            resp = self._client.get("rest/api/2/field", advanced_mode=True)
+            if resp.status_code != 200:
+                logger.warning("debug_fields_failed", status=resp.status_code)
+                return []
+            fields = resp.json() if isinstance(resp.json(), list) else []
+            kw = keyword.lower()
+            return [{"id": f.get("id", ""), "name": f.get("name", ""),
+                     "schema": f.get("schema", {}).get("custom", ""),
+                     "custom": f.get("custom", False)}
+                    for f in fields
+                    if kw in f.get("name", "").lower() or kw in f.get("id", "").lower()
+                    or kw in f.get("schema", {}).get("custom", "").lower()]
+        except Exception as e:
+            logger.warning("debug_fields_error", err=str(e)[:120])
+            return []
+
     def debug_statuses(self) -> dict[str, int]:
         """Fetch raw Jira status names and counts."""
         st = getattr(self, '_discovered_story_types', self._story_types)
@@ -414,14 +434,16 @@ class JiraAdapter:
         """Execute paginated JQL and map results."""
         results: list[JiraStory] = []
         start = 0
-        fields = f"summary,description,status,labels,{self._sp_field},assignee,sprint,created,issuetype,parent,issuelinks"
+        fields = f"summary,description,status,labels,{self._sp_field},assignee,{self._sprint_field},created,issuetype,parent,issuelinks"
         while True:
             resp = self._client.jql(jql, start=start, limit=100, fields=fields)
             for issue in resp.get("issues", []):
                 results.append(self._map(issue))
             start += 100
             if start >= resp.get("total", 0): break
+        sprint_populated = sum(1 for s in results if s.sprint)
         logger.info("jql_results", n=len(results))
+        logger.debug("sprint_field_info", field=self._sprint_field, populated=sprint_populated, total=len(results))
         return results
 
     def _map(self, raw: dict[str, Any]) -> JiraStory:
@@ -439,8 +461,8 @@ class JiraAdapter:
             status=self._resolve_status(f.get("status", {}).get("name", ""), created),
             story_points=safe_int(f.get(self._sp_field)),
             labels=f.get("labels", []),
-            sprint=_sprint_name(f.get("sprint")),
-            sprint_id=_sprint_id(f.get("sprint")),
+            sprint=_sprint_name(f.get(self._sprint_field)),
+            sprint_id=_sprint_id(f.get(self._sprint_field)),
             assignee=_assignee(f.get("assignee")),
             created_date=created[:10] if created else None,
             issue_type=IssueType.TASK if is_task else IssueType.STORY,
@@ -480,19 +502,42 @@ def _sprint_number(name: str) -> int:
     m = re.search(r"(\d+)", name)
     return int(m.group(1)) if m else 0
 
+def _greenhopper_name(s: str) -> str | None:
+    """Parse 'name=Sprint 5' from GreenHopper toString format."""
+    m = re.search(r'name=([^,\]]+)', s)
+    return m.group(1).strip() if m else None
+
+def _greenhopper_id(s: str) -> int:
+    """Parse 'id=12345' from GreenHopper toString format."""
+    m = re.search(r'\bid=(\d+)', s)
+    return int(m.group(1)) if m else 0
+
 def _sprint_name(field: Any) -> str | None:
+    """Extract sprint name from any Jira sprint field format.
+
+    Handles: None, dict (Cloud JSON), list of dicts, str (Server GreenHopper toString), list of str.
+    """
+    if field is None: return None
     if isinstance(field, dict): return field.get("name")
+    if isinstance(field, str): return _greenhopper_name(field)
     if isinstance(field, list) and field:
         last = field[-1]
-        return last.get("name") if isinstance(last, dict) else str(last)
+        if isinstance(last, dict): return last.get("name")
+        if isinstance(last, str): return _greenhopper_name(last)
     return None
 
 def _sprint_id(field: Any) -> int:
-    """Extract Jira sprint ID from sprint field."""
+    """Extract Jira sprint ID from any Jira sprint field format.
+
+    Handles: None, dict (Cloud JSON), list of dicts, str (Server GreenHopper toString), list of str.
+    """
+    if field is None: return 0
     if isinstance(field, dict): return int(field.get("id", 0))
+    if isinstance(field, str): return _greenhopper_id(field)
     if isinstance(field, list) and field:
         last = field[-1]
-        return int(last.get("id", 0)) if isinstance(last, dict) else 0
+        if isinstance(last, dict): return int(last.get("id", 0))
+        if isinstance(last, str): return _greenhopper_id(last)
     return 0
 
 def _assignee(field: Any) -> str | None:

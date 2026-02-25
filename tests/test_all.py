@@ -1739,6 +1739,75 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml')) as f:
 t("dep_fastapi", 'fastapi' in pyp)
 t("dep_uvicorn", 'uvicorn' in pyp)
 
+# ═══════════════════════════════════════════════════════
+# SPRINT FIELD DETECTION: Story 2-20
+# ═══════════════════════════════════════════════════════
+# Cannot import from jira_adapter (requires atlassian lib), so exec the pure functions
+import re as _re
+def _gh_name(s):
+    m = _re.search(r'name=([^,\]]+)', s)
+    return m.group(1).strip() if m else None
+def _gh_id(s):
+    m = _re.search(r'\bid=(\d+)', s)
+    return int(m.group(1)) if m else 0
+def _sn(field):
+    if field is None: return None
+    if isinstance(field, dict): return field.get("name")
+    if isinstance(field, str): return _gh_name(field)
+    if isinstance(field, list) and field:
+        last = field[-1]
+        if isinstance(last, dict): return last.get("name")
+        if isinstance(last, str): return _gh_name(last)
+    return None
+def _si(field):
+    if field is None: return 0
+    if isinstance(field, dict): return int(field.get("id", 0))
+    if isinstance(field, str): return _gh_id(field)
+    if isinstance(field, list) and field:
+        last = field[-1]
+        if isinstance(last, dict): return int(last.get("id", 0))
+        if isinstance(last, str): return _gh_id(last)
+    return 0
+
+# GreenHopper toString format parsing
+_gh_str = "com.atlassian.greenhopper.service.sprint.Sprint@5c0ac8bd[id=15279,rapidViewId=456,state=CLOSED,name=Sprint 5,startDate=2026-01-06T00:00:00.000+01:00]"
+t("greenhopper_name", _gh_name(_gh_str) == "Sprint 5")
+t("greenhopper_id", _gh_id(_gh_str) == 15279)
+t("greenhopper_name_none", _gh_name("no match here") is None)
+t("greenhopper_id_zero", _gh_id("no match here") == 0)
+
+# _sprint_name handles all formats
+t("sprint_name_none", _sn(None) is None)
+t("sprint_name_dict", _sn({"id": 1, "name": "Sprint 3"}) == "Sprint 3")
+t("sprint_name_list_dict", _sn([{"id": 1, "name": "Sprint 1"}, {"id": 2, "name": "Sprint 2"}]) == "Sprint 2")
+t("sprint_name_greenhopper_str", _sn(_gh_str) == "Sprint 5")
+t("sprint_name_list_greenhopper", _sn(["old", _gh_str]) == "Sprint 5")
+
+# _sprint_id handles all formats
+t("sprint_id_none", _si(None) == 0)
+t("sprint_id_dict", _si({"id": 42, "name": "Sprint 3"}) == 42)
+t("sprint_id_list_dict", _si([{"id": 1}, {"id": 99}]) == 99)
+t("sprint_id_greenhopper_str", _si(_gh_str) == 15279)
+t("sprint_id_list_greenhopper", _si(["old", _gh_str]) == 15279)
+
+# jira_adapter uses sprint_field config
+with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja5=f.read()
+t("jira_sprint_field_config", 'sprint_field' in ja5 and 'self._sprint_field' in ja5)
+t("jira_sprint_field_in_jql", 'self._sprint_field' in ja5 and '{self._sprint_field}' in ja5)
+t("jira_sprint_field_in_map", 'f.get(self._sprint_field)' in ja5)
+t("jira_debug_fields_method", 'def debug_fields' in ja5)
+t("jira_greenhopper_helpers", 'def _greenhopper_name' in ja5 and 'def _greenhopper_id' in ja5)
+
+# CLI debug-fields command
+with open(os.path.join(BASE, 'cli.py')) as f: cli_df=f.read()
+t("cli_debug_fields_cmd", 'def debug_fields' in cli_df)
+t("cli_debug_fields_keyword", '--keyword' in cli_df)
+
+# config.yaml has sprint_field
+with open(os.path.join(os.path.dirname(__file__), '..', 'config.yaml')) as f: cfg_txt=f.read()
+t("config_sprint_field", 'sprint_field' in cfg_txt)
+t("config_a_valider_status", 'A valider' in cfg_txt)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)
