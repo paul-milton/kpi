@@ -338,6 +338,8 @@ class WeeklyReport(BaseModel):
     sprint_duration_weeks: int = 3
     tag_scores: list[TagScore] = Field(default_factory=list)
     date_total_points: int = 0             # total points of stories in current/past sprints
+    date_done_points: int = 0              # completed points within date-scoped stories only
+    date_stories: list[JiraStory] = Field(default_factory=list)  # stories in current/past sprints
     score_global_date: float = 0.0       # weighted avg of tag scores (current/past sprints only)
     score_global_project: float = 0.0    # weighted avg of tag scores (all stories, smoothed)
     projection: ProjectionEstimate | None = None

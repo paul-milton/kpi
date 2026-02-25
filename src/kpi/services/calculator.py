@@ -150,6 +150,7 @@ class KPICalculator:
         past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
         date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
         date_total_pts = sum(s.story_points for s in date_stories)
+        date_done_pts = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
         score_global_date = self._score_global(tag_scores_date,
                                                time_progress=time_progress,
@@ -203,6 +204,8 @@ class KPICalculator:
             sprint_duration_weeks=self._sw,
             tag_scores=tag_scores,
             date_total_points=date_total_pts,
+            date_done_points=date_done_pts,
+            date_stories=date_stories,
             score_global_date=round(score_global_date, 4),
             score_global_project=round(score_global_project, 4),
             projection=projection,

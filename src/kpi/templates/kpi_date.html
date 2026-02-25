@@ -16,52 +16,53 @@
 {# ══════════ DÉTAIL ══════════ #}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
 
-  {# Story points + User stories — colonnes alignées #}
-  {%- set active_pts = r.all_stories|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
-  {%- set weighted_pts = (active_pts * 0.5)|round(0)|int -%}
-  {%- set projet_estime = r.done_points + r.estimated_remaining -%}
+  {# Story points + User stories — scope "à date" (sprints passés/courant) #}
+  {%- set ds = r.date_stories -%}
+  {%- set date_active_pts = ds|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
+  {%- set date_weighted_pts = (date_active_pts * 0.5)|round(0)|int -%}
+  {%- set date_blocked = ds|selectattr('status','equalto','blocked')|list -%}
   <div class="grid grid-cols-4 gap-2 mt-1">
-    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points</div>
+    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points <span class="text-[10px] text-muted font-normal">— scope à date</span></div>
     <div class="kcard bg-ok-bg">
       <div class="kcard-title">Points terminés</div>
-      <div class="kcard-value">{{r.done_points}}</div>
+      <div class="kcard-value">{{r.date_done_points}}</div>
       <div class="kcard-unit">points</div>
       {{ delta("terminés") }}
     </div>
     <div class="kcard bg-accent-bg">
       <div class="kcard-title">Points en cours pondérés</div>
-      <div class="kcard-value">{{weighted_pts}}</div>
-      <div class="kcard-unit">points ({{active_pts}}&nbsp;×&nbsp;50%)</div>
+      <div class="kcard-value">{{date_weighted_pts}}</div>
+      <div class="kcard-unit">points ({{date_active_pts}}&nbsp;×&nbsp;50%)</div>
     </div>
     <div class="kcard bg-muted-bg">
-      <div class="kcard-title">Total projet estimé</div>
-      <div class="kcard-value">{{projet_estime}}</div>
+      <div class="kcard-title">Total planifié à date</div>
+      <div class="kcard-value">{{r.date_total_points}}</div>
       <div class="kcard-unit">points</div>
     </div>
     <div class="kcard bg-err-bg">
       <div class="kcard-title">Points bloqués</div>
-      <div class="kcard-value">{{r.blocked_stories|sum(attribute='story_points')}}</div>
+      <div class="kcard-value">{{date_blocked|sum(attribute='story_points')}}</div>
       <div class="kcard-unit">points</div>
     </div>
-    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
+    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories <span class="text-[10px] text-muted font-normal">— scope à date</span></div>
     <div class="kcard bg-ok-bg">
       <div class="kcard-title">Terminées</div>
-      <div class="kcard-value">{{r.all_stories|selectattr('status','in',['done','delivered'])|list|length}}</div>
+      <div class="kcard-value">{{ds|selectattr('status','in',['done','delivered'])|list|length}}</div>
       <div class="kcard-unit">user stories</div>
     </div>
     <div class="kcard bg-accent-bg">
       <div class="kcard-title">En cours</div>
-      <div class="kcard-value">{{r.all_stories|selectattr('status','in',['in-progress','review','testing'])|list|length}}</div>
+      <div class="kcard-value">{{ds|selectattr('status','in',['in-progress','review','testing'])|list|length}}</div>
       <div class="kcard-unit">user stories</div>
     </div>
     <div class="kcard bg-muted-bg">
       <div class="kcard-title">Total</div>
-      <div class="kcard-value">{{r.all_stories|length}}</div>
+      <div class="kcard-value">{{ds|length}}</div>
       <div class="kcard-unit">user stories</div>
     </div>
     <div class="kcard bg-err-bg">
       <div class="kcard-title">Bloquées</div>
-      <div class="kcard-value">{{r.blocked_stories|length}}</div>
+      <div class="kcard-value">{{date_blocked|length}}</div>
       <div class="kcard-unit">user stories</div>
     </div>
   </div>
