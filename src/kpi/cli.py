@@ -342,6 +342,80 @@ def labels_replace(ctx, old_pattern, new_label, filter_status, filter_sprint, fi
         click.echo("  --no-dry-run pour appliquer\n")
 
 
+@labels.command("env")
+@click.argument("env_name", type=click.Choice(["dev", "recette", "preprod", "prod"], case_sensitive=False))
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_env(ctx, env_name, filter_status, filter_sprint, filter_label, filter_key,
+               filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Assign an environment label (env:xxx) to matching stories. Replaces any existing env: label."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    new_label = f"env:{env_name.lower()}"
+    changed = 0; skipped = 0
+    for s in matched:
+        old_envs = [l for l in s.labels if l.startswith("env:")]
+        if old_envs == [new_label]:
+            skipped += 1; continue
+        changed += 1
+        if dry_run:
+            if old_envs:
+                click.echo(f"    DRY {s.key}: {old_envs} → {new_label} — {s.summary[:50]}")
+            else:
+                click.echo(f"    DRY {s.key}: + {new_label} — {s.summary[:50]}")
+        else:
+            if old_envs:
+                j.remove_labels(s.key, old_envs)
+            j.add_labels(s.key, [new_label])
+            click.echo(f"    ✅  {s.key}: {new_label}")
+    click.echo(f"\n  🌍 env '{new_label}' — {changed} à modifier ({skipped} déjà ok, {len(stories) - len(matched)} filtrées)")
+    if dry_run and changed > 0:
+        click.echo("  --no-dry-run pour appliquer\n")
+
+
+@labels.command("clear-env")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_clear_env(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                     filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Remove all env: labels from matching stories."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    removed = 0
+    for s in matched:
+        old_envs = [l for l in s.labels if l.startswith("env:")]
+        if not old_envs: continue
+        removed += 1
+        if dry_run:
+            click.echo(f"    DRY {s.key}: ✗ {old_envs} — {s.summary[:50]}")
+        else:
+            j.remove_labels(s.key, old_envs)
+            click.echo(f"    ✅  {s.key}: ✗ {old_envs}")
+    click.echo(f"\n  🌍 clear-env — {removed} stories avec env: label")
+    if dry_run and removed > 0:
+        click.echo("  --no-dry-run pour appliquer\n")
+
+
 @labels.command("list")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")

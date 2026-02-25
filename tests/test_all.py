@@ -1286,6 +1286,13 @@ t("mock_env_labels", 'ENV_LABELS' in mock_code and 'env:' in mock_code)
 # Config: env: removed from legacy prefixes (now handled properly)
 t("cfg_env_not_legacy", "env:" not in str(CFG["jira"].get("legacy_label_prefixes", [])))
 
+# CLI: labels env / clear-env commands
+t("cli_labels_env_cmd", 'labels_env' in cli or "labels.command(\"env\")" in cli)
+t("cli_labels_env_choice", 'dev' in cli and 'recette' in cli and 'preprod' in cli and 'prod' in cli)
+t("cli_labels_env_replaces", 'env:' in cli and 'remove_labels' in cli)
+t("cli_labels_clear_env_cmd", 'labels_clear_env' in cli or "clear-env" in cli)
+t("cli_labels_env_dry_run", 'dry_run' in cli)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)
