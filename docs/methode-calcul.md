@@ -130,6 +130,23 @@ La météo s'ajuste en fonction de l'avancement **relatif au temps écoulé** du
 | `sprint_duration_weeks` | 3 | Durée sprint en semaines |
 | `PROJECT_NAME` (env) | — | Nom du projet (surcharge config) |
 
+## Score projet à date
+
+Mesure l'avancement structurel pondéré des livrables planifiés jusqu'au sprint courant.
+
+**Formule par dimension :**
+- `score_dim = weighted_sum / max(pts_planifiés, total_projet × poids_dim × time_progress)`
+
+**Formule globale :**
+- `score_date = Σ(score_dim × poids_dim) / Σ(poids_dim)`
+
+Le **plancher temps-proportionnel** empêche le score d'atteindre 100% tant que le projet n'est pas terminé, même si tous les sprints réalisés sont complets. Le dénominateur de chaque dimension est au minimum la part attendue du total projet à la date courante.
+
+**Exemple :** 65 pts done, 200 pts projet total, 42% temps écoulé
+→ dénominateur effectif ≥ 84 pts → score ≤ 77%
+
+En fin de projet (`time_progress → 1.0`), le dénominateur converge vers le total réel et le score reflète l'avancement brut.
+
 ## Variations
 
 - Comparaison avec le snapshot précédent (TinyDB)

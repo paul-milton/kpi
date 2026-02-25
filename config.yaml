@@ -27,7 +27,7 @@ confluence:
   parent_page_title: "06_Organisation / Planification"
 
 project:
-  name: "Mon Projet"
+  name: "KPI"
   start_date: "2025-10-01"
   end_date: "2026-09-30"
   sprint_duration_weeks: 3

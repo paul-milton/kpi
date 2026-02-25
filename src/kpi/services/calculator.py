@@ -142,7 +142,9 @@ class KPICalculator:
         date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
         date_total_pts = sum(s.story_points for s in date_stories)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
-        score_global_date = self._score_global(tag_scores_date)
+        score_global_date = self._score_global(tag_scores_date,
+                                               time_progress=time_progress,
+                                               total_project_pts=total_pts)
 
         # Future projection (Story 1-5): projected stories for global report
         projection = self._compute_projection(live, raf, tag_scores)
@@ -570,14 +572,28 @@ class KPICalculator:
                 ))
         return warnings
 
-    def _score_global(self, tag_scores: list[TagScore]) -> float:
-        """Weighted average of top-level tag scores using domain_weight (AC #1)."""
+    def _score_global(self, tag_scores: list[TagScore], *,
+                       time_progress: float | None = None,
+                       total_project_pts: int | None = None) -> float:
+        """Weighted average of top-level tag scores using domain_weight (AC #1).
+
+        When time_progress and total_project_pts are provided (mode "à date"),
+        the denominator per dimension is floored to the time-proportional share
+        of the total project, preventing score_date from reaching 100% mid-project.
+        """
         numerator = 0.0
         denominator = 0.0
         for ts in tag_scores:
             w = self._dw.get(ts.label, 0.0)
-            if w > 0 and ts.total_points > 0:
-                numerator += ts.score * w
+            if w <= 0:
+                continue
+            effective_total = ts.total_points
+            if time_progress and total_project_pts:
+                expected = total_project_pts * w * time_progress
+                effective_total = max(effective_total, expected)
+            if effective_total > 0:
+                adj_score = min(ts.weighted_sum / effective_total, 1.0)
+                numerator += adj_score * w
                 denominator += w
         return numerator / denominator if denominator > 0 else 0.0
 

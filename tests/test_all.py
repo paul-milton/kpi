@@ -38,6 +38,11 @@ t("cfg_unestimated_default", CFG.get("unestimated_default_points") == 3)
 t("cfg_unestimated_max_ratio", CFG.get("unestimated_max_ratio") == 0.5)
 t("cfg_projection_margin", CFG.get("projection_margin") == 0.15)
 
+# Project name must be set (not a placeholder)
+pn=CFG.get("project",{}).get("name","")
+t("cfg_project_name_set", bool(pn), "project.name is empty")
+t("cfg_project_name_not_placeholder", pn.lower() not in ("mon projet","my project",""), f"placeholder '{pn}'")
+
 # No prorata or show_current_sprint_stories in config
 t("cfg_no_prorata", "prorata_current_sprint" not in CFG.get("project", {}))
 t("cfg_no_show_sprint", "show_current_sprint_stories" not in CFG.get("project", {}))
@@ -829,6 +834,31 @@ t("calc_score_global_method", '_score_global' in cc3)
 t("calc_score_global_text", 'def score_global_text' in cc3)
 t("calc_date_filtering", 'past_sprint_names' in cc3)
 t("calc_smoothing", 'score_global_date * 0.5' in cc3)
+
+# Test: time-proportional floor — score_date < 1.0 when project has future work
+# total_pts = 30 (10 done fonc + 10 backlog fonc + 10 backlog tech)
+# date_stories only includes done (10 pts) → weighted_sum ≈ 10
+# Without floor: score = ~1.0 (all date_stories are done)
+# With floor: denominator >= total_project * weight * time_progress → score < 1.0
+t("sg_date_floor_code", 'time_progress' in cc3 and 'total_project_pts' in cc3)
+t("sg_date_time_floor", sg_report.score_global_date < 1.0,
+  f"score_date={sg_report.score_global_date} should be < 1.0 mid-project")
+
+# Test: in-progress stories reduce score vs all-done
+sg_stories_inprog = [
+    JiraStory(key="IP1", summary="done", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="IP2", summary="in progress", status=StoryStatus.IN_PROGRESS, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="IP3", summary="backlog", status=StoryStatus.BACKLOG, story_points=10, labels=["technique"]),
+]
+sg_stories_alldone = [
+    JiraStory(key="AD1", summary="done", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="AD2", summary="done2", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint=_sg_sprint),
+    JiraStory(key="AD3", summary="backlog", status=StoryStatus.BACKLOG, story_points=10, labels=["technique"]),
+]
+ip_report = sg_calc.compute(sg_stories_inprog, [])
+ad_report = sg_calc.compute(sg_stories_alldone, [])
+t("sg_inprog_lower_than_done", ip_report.score_global_date < ad_report.score_global_date,
+  f"inprog={ip_report.score_global_date} should < alldone={ad_report.score_global_date}")
 
 # ═══════════════════════════════════════════════════════
 # PROJECTION: Story 1-5 — future US projection engine
