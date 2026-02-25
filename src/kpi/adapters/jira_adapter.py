@@ -34,6 +34,7 @@ class JiraAdapter:
         self._sprint_weeks = cfg.get("project", {}).get("sprint_duration_weeks", 3)
         self._story_types = j.get("story_types", ['Story', 'User Story'])
         self._task_types = j.get("task_types", ['Task', 'Sub-task', 'Subtask', 'Sous-tâche', 'Tâche'])
+        self._notify = j.get("notify_users", False)
         self._client = Jira(url=j["url"], token=j["token"],
                             verify_ssl=resolve_ssl(cfg), proxies=resolve_proxies())
         self._project = self._resolve_project_key(self._configured_project)
@@ -245,10 +246,16 @@ class JiraAdapter:
             logger.info("velocities", n=len(vels), avg_pw=round(avg, 1))
         return vels
 
+    def _update_issue(self, key: str, data: dict) -> None:
+        """Update issue with optional notification suppression."""
+        notify = "true" if self._notify else "false"
+        url = f"rest/api/2/issue/{key}?notifyUsers={notify}"
+        self._client.put(url, data=data)
+
     def add_labels(self, key: str, labels: list[str]) -> bool:
         """Add labels to a Jira issue."""
         try:
-            self._client.update_issue(key, {"update": {"labels": [{"add": l} for l in labels]}})
+            self._update_issue(key, {"update": {"labels": [{"add": l} for l in labels]}})
             return True
         except Exception as e:
             logger.error("add_labels_failed", key=key, err=str(e)[:80]); return False
@@ -256,7 +263,7 @@ class JiraAdapter:
     def remove_labels(self, key: str, labels: list[str]) -> bool:
         """Remove labels from a Jira issue."""
         try:
-            self._client.update_issue(key, {"update": {"labels": [{"remove": l} for l in labels]}})
+            self._update_issue(key, {"update": {"labels": [{"remove": l} for l in labels]}})
             return True
         except Exception as e:
             logger.error("remove_labels_failed", key=key, err=str(e)[:80]); return False
@@ -283,7 +290,9 @@ class JiraAdapter:
         if story_points is not None:
             fields[self._sp_field] = story_points
         try:
-            resp = self._client.create_issue(fields=fields)
+            notify = "true" if self._notify else "false"
+            resp = self._client.post(f"rest/api/2/issue?notifyUsers={notify}",
+                                     data={"fields": fields})
             key = resp.get("key", "") if isinstance(resp, dict) else ""
             if key:
                 logger.info("subtask_created", parent=parent_key, key=key, summary=summary[:60])

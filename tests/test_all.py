@@ -1534,6 +1534,13 @@ with open(os.path.join(BASE, 'services', 'tagger.py')) as f: tagger_code=f.read(
 t("tagger_spacy_autodownload", '"download", "fr_core_news_sm"' in tagger_code)
 t("tagger_spacy_proxy", 'os.environ' in tagger_code)
 
+# Jira: notify_users config + notifyUsers in API calls
+t("cfg_notify_users_false", CFG["jira"].get("notify_users") == False)
+with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja2=f.read()
+t("jira_notify_flag", '_notify' in ja2 and 'notify_users' in ja2)
+t("jira_notify_in_api", 'notifyUsers' in ja2)
+t("jira_update_issue_method", 'def _update_issue' in ja2)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)
