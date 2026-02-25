@@ -152,7 +152,8 @@ class KPICalculator:
         # Global view: no sprint penalty (status weights only)
         cur_sprint_name = f"Sprint {snum}"
         tag_scores = [self._tag_score(n, live, cur_sprint_name,
-                                       apply_sprint_weight=False) for n in self._dims]
+                                       apply_sprint_weight=False,
+                                       current_sprint_num=snum) for n in self._dims]
         # Merge DimensionKPI operational data into TagScore (Story 2-2)
         self._merge_dim_into_tags(tag_scores, dim_kpis)
 
@@ -160,8 +161,18 @@ class KPICalculator:
         # "À date": sprint-weighted scores for current/past sprints only
         date_stories = self._date_stories(live, timeline)
         date_total_pts = sum(s.story_points for s in date_stories)
-        date_done_pts = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
-        tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
+
+        # date_done_pts: sum velocity completed_points (past sprints) + done from current sprint
+        # This ensures consistency with the velocity table display
+        velocity_done = sum(v.completed_points for v in velocities if v.sprint_number <= snum)
+        current_sprint_done = sum(s.story_points for s in date_stories
+                                  if s.status in COMPLETED_STATUSES
+                                  and _sprint_num(s.sprint) == snum)
+        date_done_fallback = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
+        date_done_pts = max(velocity_done + current_sprint_done, date_done_fallback) if velocities else date_done_fallback
+
+        tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name,
+                                          current_sprint_num=snum) for n in self._dims]
         date_ratio = date_done_pts / date_total_pts if date_total_pts > 0 else 0.0
         score_global_date = max(self._score_global(tag_scores_date,
                                                time_progress=time_progress,
@@ -366,7 +377,8 @@ class KPICalculator:
         return WeatherIcon.STORMY
 
     def _tag_score(self, node: DimensionNode, stories: list[JiraStory],
-                   current_sprint: str, *, apply_sprint_weight: bool = True) -> TagScore:
+                   current_sprint: str, *, apply_sprint_weight: bool = True,
+                   current_sprint_num: int = 0) -> TagScore:
         """Compute structural advancement score for a dimension tag (AC #1-4).
 
         When apply_sprint_weight=False (global project view), the sprint
@@ -376,7 +388,8 @@ class KPICalculator:
 
         # Recurse into children first (AC #4)
         child_scores = [self._tag_score(c, stories, current_sprint,
-                                         apply_sprint_weight=apply_sprint_weight) for c in node.children]
+                                         apply_sprint_weight=apply_sprint_weight,
+                                         current_sprint_num=current_sprint_num) for c in node.children]
 
         # Collect direct stories not already counted by children
         child_keys = set()
@@ -395,7 +408,8 @@ class KPICalculator:
                 # Sprint weight (AC #3) — Done work always counts fully
                 if s.status in COMPLETED_STATUSES:
                     spw = 1.0
-                elif s.sprint and s.sprint == current_sprint:
+                elif s.sprint and (s.sprint == current_sprint
+                                    or _sprint_num(s.sprint) == current_sprint_num):
                     spw = 1.0
                 elif s.status in ACTIVE_STATUSES:
                     spw = 0.5
@@ -663,7 +677,7 @@ class KPICalculator:
         _walk(tag_scores)
         raw = numerator / denominator if denominator > 0 else 0.0
         if time_progress is not None and total_project_pts and time_progress < 1.0:
-            dampening = max(0.0, (1.0 - time_progress) * 0.3)
+            dampening = max(0.0, (1.0 - time_progress) * 0.1)
             raw *= (1.0 - dampening)
         return raw
 

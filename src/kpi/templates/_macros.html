@@ -214,7 +214,7 @@
 {%- endif -%}
 {%- endmacro -%}
 
-{# ── Tableau vélocité détaillé ── #}
+{# ── Tableau vélocité détaillé (transposé: sprints en lignes) ── #}
 {%- macro velocity_table() -%}
 {%if r.velocities%}
 {%- set vs = r.velocities -%}
@@ -222,53 +222,57 @@
 {%- set cpw = vs|map(attribute='completed_per_week')|list -%}
 {%- set avg_pw = (cpw|sum / n)|round(1) -%}
 {%- set med_pw = (cpw|sort)[n // 2] if n % 2 == 1 else (((cpw|sort)[n // 2 - 1] + (cpw|sort)[n // 2]) / 2)|round(1) -%}
+{%- set avg_committed = (vs|map(attribute='committed_points')|sum / n)|round(0)|int -%}
+{%- set avg_completed = (vs|map(attribute='completed_points')|sum / n)|round(0)|int -%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
   <h2 class="section-title">&#x1F3C3; Vélocité</h2>
   <table class="w-full border-collapse text-xs">
+  <thead>
   <tr>
-    <th class="th th-default"></th>
-    {%for v in vs%}<th class="bg-muted-bg text-center px-2 py-1 font-semibold border-b-2 border-border">{{v.sprint_name}}</th>{%endfor%}
-    <th class="th th-accent text-center">Moy.</th>
-    <th class="th th-accent text-center">Méd.</th>
+    <th class="th th-default text-left">Sprint</th>
+    {%if vs[0].start_date%}<th class="th th-default text-center">Dates</th>{%endif%}
+    <th class="th th-default text-center">Engagés</th>
+    <th class="th th-default text-center">Livrés</th>
+    <th class="th th-default text-center">pts/sem</th>
+    <th class="th th-default text-center">Stories</th>
   </tr>
-  {%if vs[0].start_date%}
+  </thead>
+  <tbody>
+  {%for v in vs%}
   <tr>
-    <td class="px-2 py-1 border-b border-gray-100 text-muted">Dates</td>
-    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center text-muted text-[9px]">{{v.start_date[5:]}} → {{v.end_date[5:]}}</td>{%endfor%}
-    <td></td><td></td>
-  </tr>
-  {%endif%}
-  <tr>
-    <td class="px-2 py-1 border-b border-gray-100 font-bold">Engagés</td>
-    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center">{{v.committed_points}} pts</td>{%endfor%}
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg">{{(vs|map(attribute='committed_points')|sum / n)|round(0)|int}}</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td class="px-2 py-1 border-b border-gray-100 font-bold">Livrés</td>
-    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center font-bold {%if v.completed_points >= v.committed_points%}bg-ok-bg{%elif v.completed_points >= v.committed_points * 0.7%}bg-warn-bg{%else%}bg-err-bg{%endif%}">{{v.completed_points}} pts</td>{%endfor%}
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{(vs|map(attribute='completed_points')|sum / n)|round(0)|int}}</td>
-    <td></td>
-  </tr>
-  <tr>
-    <td class="px-2 py-1 border-b border-gray-100 font-bold">pts / semaine</td>
-    {%for v in vs%}
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">{{v.sprint_name}}</td>
+    {%if vs[0].start_date%}<td class="px-2 py-1 border-b border-gray-100 text-center text-muted text-[9px]">{{v.start_date[5:]}} → {{v.end_date[5:]}}</td>{%endif%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{v.committed_points}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold {%if v.completed_points >= v.committed_points%}bg-ok-bg{%elif v.completed_points >= v.committed_points * 0.7%}bg-warn-bg{%else%}bg-err-bg{%endif%}">{{v.completed_points}}</td>
     <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{v.completed_per_week}}{%if not loop.first%}{%set prev = vs[loop.index0 - 1].completed_per_week%}{%set d = v.completed_per_week - prev%}{%if d != 0%} <span class="text-[9px] {%if d > 0%}v-pos{%else%}v-neg{%endif%}">{%if d > 0%}+{%endif%}{{d|round(1)}}</span>{%endif%}{%endif%}</td>
-    {%endfor%}
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{avg_pw}}</td>
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{med_pw}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{v.completed_stories}}/{{v.total_stories}}</td>
   </tr>
-  <tr>
-    <td class="px-2 py-1 border-b border-gray-100">Stories (livrées/total)</td>
-    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center">{{v.completed_stories}}/{{v.total_stories}}</td>{%endfor%}
-    <td></td><td></td>
+  {%endfor%}
+  </tbody>
+  <tfoot>
+  <tr class="bg-accent-bg">
+    <td class="px-2 py-1 border-t-2 border-border font-bold">Moyenne</td>
+    {%if vs[0].start_date%}<td></td>{%endif%}
+    <td class="px-2 py-1 border-t-2 border-border text-center">{{avg_committed}}</td>
+    <td class="px-2 py-1 border-t-2 border-border text-center font-bold">{{avg_completed}}</td>
+    <td class="px-2 py-1 border-t-2 border-border text-center font-bold">{{avg_pw}}</td>
+    <td></td>
   </tr>
+  <tr class="bg-accent-bg">
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">Médiane</td>
+    {%if vs[0].start_date%}<td></td>{%endif%}
+    <td></td>
+    <td></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{med_pw}}</td>
+    <td></td>
+  </tr>
+  </tfoot>
   </table>
 </div>
 {%else%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F3C3; Velocite</h2>
-  <div class="text-muted text-xs p-4 text-center">Velocite indisponible - verifiez les sprints fermes dans Jira ou utilisez <code>kpi demo</code> pour tester avec des donnees fictives.</div>
+  <h2 class="section-title">&#x1F3C3; Vélocité</h2>
+  <div class="text-muted text-xs p-4 text-center">Velocite indisponible - verifiez les sprints fermes dans Jira ou utilisez <code>kpi demo</code> pour tester.</div>
 </div>
 {%endif%}
 {%- endmacro -%}

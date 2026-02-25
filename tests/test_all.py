@@ -1808,6 +1808,58 @@ with open(os.path.join(os.path.dirname(__file__), '..', 'config.yaml')) as f: cf
 t("config_sprint_field", 'sprint_field' in cfg_txt)
 t("config_a_valider_status", 'A valider' in cfg_txt)
 
+# ═══════════════════════════════════════════════════════
+# VELOCITY TABLE TRANSPOSE + SCORE FIX: Story 2-21
+# ═══════════════════════════════════════════════════════
+with open(os.path.join(BASE, 'templates', '_macros.html')) as f: mac21=f.read()
+
+# Transposed table: sprints as rows (thead/tbody/tfoot structure)
+t("velocity_transposed_thead", '<thead>' in mac21 and '<tbody>' in mac21 and '<tfoot>' in mac21)
+t("velocity_transposed_cols", 'Engag' in mac21 and 'pts/sem' in mac21 and 'Stories' in mac21)
+t("velocity_transposed_footer_moy", 'Moyenne' in mac21)
+t("velocity_transposed_footer_med", 'Médiane' in mac21 or 'med_pw' in mac21)
+# Color coding preserved
+t("velocity_transposed_colors", 'bg-ok-bg' in mac21 and 'bg-warn-bg' in mac21 and 'bg-err-bg' in mac21)
+# Delta arrows preserved
+t("velocity_transposed_deltas", 'v-pos' in mac21 and 'v-neg' in mac21)
+
+# Calculator: date_done_pts uses velocity data
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: calc21=f.read()
+t("calc_velocity_done", 'velocity_done' in calc21 and 'completed_points' in calc21)
+t("calc_current_sprint_done", 'current_sprint_done' in calc21)
+# Sprint number matching in _tag_score (not just string comparison)
+t("calc_sprint_num_match", '_sprint_num(s.sprint) == current_sprint_num' in calc21)
+# Dampening softened (0.1 instead of 0.3)
+t("calc_dampening_soft", '* 0.1' in calc21)
+
+# Functional: date_done_pts >= velocity sum
+_v21_cfg = {
+    "dimensions": [{"label": "fonctionnel", "display": "Fonctionnel", "keywords": ["fonc"]}],
+    "domain_weight": {"fonctionnel": 0.50},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+_v21_calc = KPICalculator(_v21_cfg)
+_v21_probe = _v21_calc.compute([], [])
+_v21_sname = _v21_probe.sprint_name
+_v21_stories = [
+    JiraStory(key="V1", summary="s1 done", status=StoryStatus.DONE, story_points=10, labels=["fonctionnel"], sprint="Sprint 1"),
+    JiraStory(key="V2", summary="s2 done", status=StoryStatus.DONE, story_points=8, labels=["fonctionnel"], sprint="Sprint 2"),
+    JiraStory(key="V3", summary="s3 ip", status=StoryStatus.IN_PROGRESS, story_points=5, labels=["fonctionnel"], sprint=_v21_sname),
+    JiraStory(key="V4", summary="s4 backlog", status=StoryStatus.BACKLOG, story_points=5, labels=["fonctionnel"]),
+]
+_v21_vels = [
+    SprintVelocity(sprint_name="Sprint 1", sprint_number=1, committed_points=12, completed_points=10, completed_per_week=3.3, total_stories=3, completed_stories=2),
+    SprintVelocity(sprint_name="Sprint 2", sprint_number=2, committed_points=10, completed_points=8, completed_per_week=2.7, total_stories=2, completed_stories=1),
+]
+_v21_report = _v21_calc.compute(_v21_stories, _v21_vels)
+# date_done_pts should be >= velocity sum (10 + 8 = 18)
+t("date_done_pts_velocity_consistent", _v21_report.date_done_points >= 18, f"got {_v21_report.date_done_points}")
+# score_global_date should be > 0 (not 0%)
+t("score_date_nonzero_v21", _v21_report.score_global_date > 0, f"got {_v21_report.score_global_date}")
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)
