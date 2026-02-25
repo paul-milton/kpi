@@ -156,24 +156,7 @@
 </div>
 {%endif%}
 
-{# ══════════ VÉLOCITÉ ══════════ #}
-{%if r.velocities%}
-<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F3C3; Vélocité</h2>
-  <table class="w-full border-collapse text-xs">
-  <tr>
-    <th class="th th-default"></th>
-    {%for v in r.velocities%}<th class="bg-muted-bg text-center px-2 py-1 font-semibold border-b-2 border-border">{{v.sprint_name}}</th>{%endfor%}
-    <th class="th th-accent text-center">Moyenne</th>
-  </tr>
-  <tr>
-    <td class="px-2 py-1 border-b border-gray-100 font-bold">pts / semaine</td>
-    {%for v in r.velocities%}<td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{v.completed_per_week}}</td>{%endfor%}
-    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{(r.velocities|map(attribute='completed_per_week')|sum/r.velocities|length)|round(1)}}</td>
-  </tr>
-  </table>
-</div>
-{%endif%}
+{{ velocity_table() }}
 
 {{ env_table() }}
 

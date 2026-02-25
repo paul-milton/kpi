@@ -210,18 +210,24 @@ def migrate_labels(ctx, dry_run):
 
 @main.command("purge-labels")
 @click.option("--pattern", default=":", help="Substring to match in labels (default: ':')")
+@click.option("--regex", "use_regex", is_flag=True, default=False, help="Treat --pattern as a regex")
 @click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
 @click.pass_context
-def purge_labels(ctx, pattern, dry_run):
+def purge_labels(ctx, pattern, use_regex, dry_run):
     """Remove labels matching a pattern from all stories."""
     cfg = ctx.obj["cfg"]
     j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    if use_regex:
+        import re; rx = re.compile(pattern)
+        match = lambda l: rx.search(l)
+    else:
+        match = lambda l: pattern in l
     total_rm = 0; affected = 0
     for s in stories:
-        to_remove = [l for l in s.labels if pattern in l]
+        to_remove = [l for l in s.labels if match(l)]
         if not to_remove: continue
         affected += 1; total_rm += len(to_remove)
-        keep = [l for l in s.labels if pattern not in l]
+        keep = [l for l in s.labels if not match(l)]
         if dry_run:
             click.echo(f"  {s.key}: ✗ {to_remove}  (garde: {keep})")
         else:

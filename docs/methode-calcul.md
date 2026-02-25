@@ -134,18 +134,26 @@ La météo s'ajuste en fonction de l'avancement **relatif au temps écoulé** du
 
 Mesure l'avancement structurel pondéré des livrables planifiés jusqu'au sprint courant.
 
-**Formule par dimension :**
-- `score_dim = weighted_sum / max(pts_planifiés, total_projet × poids_dim × time_progress)`
+**Formule brute :**
+- `score_brut = Σ(tag_score × poids_dim) / Σ(poids_dim)`
 
-**Formule globale :**
-- `score_date = Σ(score_dim × poids_dim) / Σ(poids_dim)`
+**Amortissement temps-proportionnel :**
+- `amortissement = max(0, (1 - time_progress) × 0.3)`
+- `score_date = score_brut × (1 - amortissement)`
 
-Le **plancher temps-proportionnel** empêche le score d'atteindre 100% tant que le projet n'est pas terminé, même si tous les sprints réalisés sont complets. Le dénominateur de chaque dimension est au minimum la part attendue du total projet à la date courante.
+L'amortissement réduit le score de **jusqu'à 30%** en début de projet, proportionnellement au temps restant. Cela empêche un score de 100% en milieu de projet tout en restant réaliste (>70% quand tous les sprints réalisés sont complets).
 
-**Exemple :** 65 pts done, 200 pts projet total, 42% temps écoulé
-→ dénominateur effectif ≥ 84 pts → score ≤ 77%
+**Exemples :**
 
-En fin de projet (`time_progress → 1.0`), le dénominateur converge vers le total réel et le score reflète l'avancement brut.
+| time_progress | amortissement | score_brut | score_date |
+|---|---|---|---|
+| 20% | 24% | 100% | 76% |
+| 40% | 18% | 100% | 82% |
+| 60% | 12% | 100% | 88% |
+| 80% | 6% | 100% | 94% |
+| 100% | 0% | 100% | 100% |
+
+En fin de projet (`time_progress → 1.0`), l'amortissement disparaît et le score reflète l'avancement brut.
 
 ## Variations
 

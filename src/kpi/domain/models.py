@@ -163,6 +163,8 @@ class SprintVelocity(BaseModel):
     completed_per_week: float = 0.0
     total_stories: int = 0
     completed_stories: int = 0
+    start_date: str = ""
+    end_date: str = ""
 
 
 class Variation(BaseModel):

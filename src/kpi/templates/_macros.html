@@ -213,6 +213,60 @@
 {%- endif -%}
 {%- endmacro -%}
 
+{# ── Tableau vélocité détaillé ── #}
+{%- macro velocity_table() -%}
+{%if r.velocities%}
+{%- set vs = r.velocities -%}
+{%- set n = vs|length -%}
+{%- set cpw = vs|map(attribute='completed_per_week')|list -%}
+{%- set avg_pw = (cpw|sum / n)|round(1) -%}
+{%- set med_pw = (cpw|sort)[n // 2] if n % 2 == 1 else (((cpw|sort)[n // 2 - 1] + (cpw|sort)[n // 2]) / 2)|round(1) -%}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F3C3; Vélocité</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="th th-default"></th>
+    {%for v in vs%}<th class="bg-muted-bg text-center px-2 py-1 font-semibold border-b-2 border-border">{{v.sprint_name}}</th>{%endfor%}
+    <th class="th th-accent text-center">Moy.</th>
+    <th class="th th-accent text-center">Méd.</th>
+  </tr>
+  {%if vs[0].start_date%}
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 text-muted">Dates</td>
+    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center text-muted text-[9px]">{{v.start_date[5:]}} → {{v.end_date[5:]}}</td>{%endfor%}
+    <td></td><td></td>
+  </tr>
+  {%endif%}
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">Engagés</td>
+    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center">{{v.committed_points}} pts</td>{%endfor%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg">{{(vs|map(attribute='committed_points')|sum / n)|round(0)|int}}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">Livrés</td>
+    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center font-bold {%if v.completed_points >= v.committed_points%}bg-ok-bg{%elif v.completed_points >= v.committed_points * 0.7%}bg-warn-bg{%else%}bg-err-bg{%endif%}">{{v.completed_points}} pts</td>{%endfor%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{(vs|map(attribute='completed_points')|sum / n)|round(0)|int}}</td>
+    <td></td>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">pts / semaine</td>
+    {%for v in vs%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">{{v.completed_per_week}}{%if not loop.first%}{%set prev = vs[loop.index0 - 1].completed_per_week%}{%set d = v.completed_per_week - prev%}{%if d != 0%} <span class="text-[9px] {%if d > 0%}v-pos{%else%}v-neg{%endif%}">{%if d > 0%}+{%endif%}{{d|round(1)}}</span>{%endif%}{%endif%}</td>
+    {%endfor%}
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{avg_pw}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-accent-bg font-bold">{{med_pw}}</td>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100">Stories (livrées/total)</td>
+    {%for v in vs%}<td class="px-2 py-1 border-b border-gray-100 text-center">{{v.completed_stories}}/{{v.total_stories}}</td>{%endfor%}
+    <td></td><td></td>
+  </tr>
+  </table>
+</div>
+{%endif%}
+{%- endmacro -%}
+
 {# ── JS fold/unfold ── #}
 {%- macro fold_js() -%}
 <script>

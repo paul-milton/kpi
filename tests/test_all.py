@@ -189,6 +189,7 @@ t("cli_compare", 'compare' in cli)
 t("cli_snapshot", 'snapshot' in cli)
 t("cli_purge_labels", 'purge-labels' in cli or 'purge_labels' in cli)
 t("cli_purge_pattern_param", '--pattern' in cli)
+t("cli_purge_regex_flag", '--regex' in cli and 're.compile' in cli)
 t("cli_fetch_sprints", 'fetch_sprints' in cli)
 t("cli_jira_sprints_param", 'jira_sprints' in cli)
 t("cli_debug_issuetypes", 'debug-issuetypes' in cli and 'debug_issue_types' in cli)
@@ -835,14 +836,14 @@ t("calc_score_global_text", 'def score_global_text' in cc3)
 t("calc_date_filtering", 'past_sprint_names' in cc3)
 t("calc_smoothing", 'score_global_date * 0.5' in cc3)
 
-# Test: time-proportional floor — score_date < 1.0 when project has future work
-# total_pts = 30 (10 done fonc + 10 backlog fonc + 10 backlog tech)
-# date_stories only includes done (10 pts) → weighted_sum ≈ 10
-# Without floor: score = ~1.0 (all date_stories are done)
-# With floor: denominator >= total_project * weight * time_progress → score < 1.0
-t("sg_date_floor_code", 'time_progress' in cc3 and 'total_project_pts' in cc3)
-t("sg_date_time_floor", sg_report.score_global_date < 1.0,
+# Test: soft dampening — score_date < 1.0 when project is mid-way
+# Dampening = (1 - time_progress) × 0.3 reduces score proportionally
+t("sg_date_dampening_code", 'dampening' in cc3 and 'time_progress' in cc3)
+t("sg_date_dampened", sg_report.score_global_date < 1.0,
   f"score_date={sg_report.score_global_date} should be < 1.0 mid-project")
+# With dampening, score should stay realistic (>0.5 when date stories are mostly done)
+t("sg_date_above_50pct", sg_report.score_global_date > 0.5,
+  f"score_date={sg_report.score_global_date} should be > 0.5 (realistic)")
 
 # Test: in-progress stories reduce score vs all-done
 sg_stories_inprog = [
@@ -963,6 +964,22 @@ t("tpl_project_pedagogy", 'pedagogy' in tpl_proj)
 
 # AC #8: Existing preview preserved
 t("tpl_preview_preserved", os.path.isfile(os.path.join(BASE, 'templates', 'kpi_preview.html')))
+
+# Velocity table macro: detailed sprint history
+t("tpl_velocity_macro", 'velocity_table' in _shared_content)
+t("tpl_velocity_committed", 'committed_points' in _shared_content)
+t("tpl_velocity_completed", 'completed_points' in _shared_content)
+t("tpl_velocity_stories", 'completed_stories' in _shared_content)
+t("tpl_velocity_dates", 'start_date' in _shared_content)
+t("tpl_velocity_median", 'med_pw' in _shared_content or 'Méd' in _shared_content)
+t("tpl_velocity_variation", 'v-pos' in _shared_content and 'v-neg' in _shared_content)
+# All 3 templates use the macro
+t("tpl_preview_velocity_macro", 'velocity_table()' in tpl)
+t("tpl_date_velocity_macro", 'velocity_table()' in tpl_date)
+t("tpl_project_velocity_macro", 'velocity_table()' in tpl_proj)
+# Model has sprint dates
+from kpi.domain.models import SprintVelocity as SV
+t("model_velocity_dates", 'start_date' in SV.model_fields and 'end_date' in SV.model_fields)
 
 # Renderer has new methods
 with open(os.path.join(BASE, 'services', 'renderer.py')) as f: rr2=f.read()
