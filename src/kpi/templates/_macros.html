@@ -198,6 +198,17 @@
   {%- endfor -%}
   </tbody>
   </table>
+  {%- if r.env_coverage_warnings -%}
+  <div class="mt-2 p-2 bg-warn-bg rounded text-xs">
+    <div class="font-semibold mb-1">&#x26A0;&#xFE0F; {{r.env_coverage_warnings|length}} stories ops/infra sans couverture env compl&egrave;te</div>
+    {%- for w in r.env_coverage_warnings[:10] -%}
+    <div class="ml-2">&#x2022; <a class="jk" href="{{r.jira_base_url}}/browse/{{w.story_key}}" target="_blank">{{w.story_key}}</a> — {{w.summary[:50]}} <span class="text-muted">(manquants: {{w.missing_envs|join(', ')}})</span></div>
+    {%- endfor -%}
+    {%- if r.env_coverage_warnings|length > 10 -%}
+    <div class="ml-2 text-muted">... et {{r.env_coverage_warnings|length - 10}} autres</div>
+    {%- endif -%}
+  </div>
+  {%- endif -%}
 </div>
 {%- endif -%}
 {%- endmacro -%}

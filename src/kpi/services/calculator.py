@@ -16,7 +16,8 @@ import structlog
 from kpi.domain.dimensions import parse_dimensions
 from kpi.domain.models import (
     ACTIVE_STATUSES, COMPLETED_STATUSES, BacklogStability, ComplementaryKPIs,
-    ComparisonResult, DimensionKPI, DimensionNode, EnvBreakdown, JiraStory,
+    ComparisonResult, DimensionKPI, DimensionNode, ENV_NAMES, EnvBreakdown,
+    EnvCoverageWarning, JiraStory, OPS_LABELS,
     ProjectionEstimate, RAFEstimation, Snapshot, SprintVelocity, StatusBreakdown,
     StoryStatus, TagScore, Variation, WeatherIcon, WeeklyReport,
 )
@@ -167,8 +168,9 @@ class KPICalculator:
         comparisons = self._comparisons(
             score_global_project, tag_scores, backlog_stability, complementary_kpis, previous)
 
-        # Env breakdown
+        # Env breakdown + coverage warnings
         env_breakdown = self._compute_env_breakdown(live)
+        env_coverage_warnings = self._check_env_coverage(live)
 
         return WeeklyReport(
             generated_at=now, week_number=now.isocalendar()[1], year=now.year,
@@ -198,6 +200,7 @@ class KPICalculator:
             comparisons=comparisons,
             all_stories=live, sprint_timeline=timeline,
             env_breakdown=env_breakdown,
+            env_coverage_warnings=env_coverage_warnings,
         )
 
     def _dim_kpi(self, node: DimensionNode, stories: list[JiraStory],
@@ -549,6 +552,23 @@ class KPICalculator:
                 stories=[s.key for s in group],
             ))
         return out
+
+    @staticmethod
+    def _check_env_coverage(stories: list[JiraStory]) -> list[EnvCoverageWarning]:
+        """Detect ops/infra stories that lack full environment coverage."""
+        warnings = []
+        for s in stories:
+            ops = [l for l in s.labels if l in OPS_LABELS]
+            if not ops:
+                continue
+            existing = [l.split(":", 1)[1] for l in s.labels if l.startswith("env:")]
+            missing = [e for e in ENV_NAMES if e not in existing]
+            if missing:
+                warnings.append(EnvCoverageWarning(
+                    story_key=s.key, summary=s.summary,
+                    ops_labels=ops, existing_envs=existing, missing_envs=missing,
+                ))
+        return warnings
 
     def _score_global(self, tag_scores: list[TagScore]) -> float:
         """Weighted average of top-level tag scores using domain_weight (AC #1)."""

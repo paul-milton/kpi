@@ -261,6 +261,24 @@ class EnvBreakdown(BaseModel):
     stories: list[str] = Field(default_factory=list)
 
 
+# Labels that require per-environment coverage
+OPS_LABELS = frozenset({
+    "ops", "devops", "deploiement", "infrastructure",
+    "observabilite", "logging", "spans", "metriques",
+})
+
+ENV_NAMES = ("dev", "recette", "preprod", "prod")
+
+
+class EnvCoverageWarning(BaseModel):
+    """Warning: an ops/infra story lacks full environment coverage."""
+    story_key: str
+    summary: str = ""
+    ops_labels: list[str] = Field(default_factory=list)
+    existing_envs: list[str] = Field(default_factory=list)
+    missing_envs: list[str] = Field(default_factory=list)
+
+
 class TagSuggestion(BaseModel):
     story_key: str
     story_summary: str = ""
@@ -327,3 +345,4 @@ class WeeklyReport(BaseModel):
     all_stories: list[JiraStory] = Field(default_factory=list)
     sprint_timeline: list[SprintInfo] = Field(default_factory=list)
     env_breakdown: list[EnvBreakdown] = Field(default_factory=list)
+    env_coverage_warnings: list[EnvCoverageWarning] = Field(default_factory=list)

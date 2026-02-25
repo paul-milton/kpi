@@ -1293,6 +1293,55 @@ t("cli_labels_env_replaces", 'env:' in cli and 'remove_labels' in cli)
 t("cli_labels_clear_env_cmd", 'labels_clear_env' in cli or "clear-env" in cli)
 t("cli_labels_env_dry_run", 'dry_run' in cli)
 
+# ═══════════════════════════════════════════════════════
+# ENV COVERAGE: ops/infra stories need per-env tasks
+# ═══════════════════════════════════════════════════════
+from kpi.domain.models import OPS_LABELS, ENV_NAMES, EnvCoverageWarning
+
+t("ops_labels_set", isinstance(OPS_LABELS, frozenset) and len(OPS_LABELS) >= 8)
+t("ops_labels_has_ops", "ops" in OPS_LABELS)
+t("ops_labels_has_devops", "devops" in OPS_LABELS)
+t("ops_labels_has_deploiement", "deploiement" in OPS_LABELS)
+t("ops_labels_has_infrastructure", "infrastructure" in OPS_LABELS)
+t("ops_labels_has_observabilite", "observabilite" in OPS_LABELS)
+t("ops_labels_has_logging", "logging" in OPS_LABELS)
+t("ops_labels_has_spans", "spans" in OPS_LABELS)
+t("ops_labels_has_metriques", "metriques" in OPS_LABELS)
+t("env_names_tuple", ENV_NAMES == ("dev", "recette", "preprod", "prod"))
+
+# EnvCoverageWarning model
+ecw = EnvCoverageWarning(story_key="X-1", summary="test", ops_labels=["ops"], existing_envs=["dev"], missing_envs=["recette", "preprod", "prod"])
+t("ecw_model_key", ecw.story_key == "X-1")
+t("ecw_model_missing", len(ecw.missing_envs) == 3)
+t("ecw_model_serializable", 'story_key' in ecw.model_dump())
+
+# Calculator _check_env_coverage
+from kpi.services.calculator import KPICalculator
+cov_stories = [
+    JiraStory(key="C1", summary="deploy", status=StoryStatus.DONE, story_points=5, labels=["ops", "env:dev"]),
+    JiraStory(key="C2", summary="monitor", status=StoryStatus.IN_PROGRESS, story_points=3, labels=["observabilite"]),
+    JiraStory(key="C3", summary="feature", status=StoryStatus.DONE, story_points=8, labels=["backend"]),
+    JiraStory(key="C4", summary="infra", status=StoryStatus.TODO, story_points=2, labels=["infrastructure", "env:dev", "env:recette", "env:preprod", "env:prod"]),
+]
+cov_warnings = KPICalculator._check_env_coverage(cov_stories)
+t("cov_warnings_count", len(cov_warnings) == 2)  # C1 (missing 3 envs) + C2 (missing all 4)
+t("cov_c1_missing", any(w.story_key == "C1" and len(w.missing_envs) == 3 for w in cov_warnings))
+t("cov_c2_missing", any(w.story_key == "C2" and len(w.missing_envs) == 4 for w in cov_warnings))
+t("cov_c3_no_warning", not any(w.story_key == "C3" for w in cov_warnings))
+t("cov_c4_no_warning", not any(w.story_key == "C4" for w in cov_warnings))
+
+# WeeklyReport has env_coverage_warnings field
+t("model_env_coverage_warnings", 'env_coverage_warnings' in mc)
+
+# CLI check-env command
+t("cli_labels_check_env_cmd", 'check-env' in cli or 'labels_check_env' in cli)
+t("cli_check_env_ops_labels", 'OPS_LABELS' in cli)
+
+# Template shows warnings
+with open(os.path.join(BASE, 'templates', '_macros.html')) as f: macros=f.read()
+t("tpl_env_coverage_warnings", 'env_coverage_warnings' in macros)
+t("tpl_env_missing_display", 'missing_envs' in macros)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

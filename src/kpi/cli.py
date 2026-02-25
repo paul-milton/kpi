@@ -416,6 +416,48 @@ def labels_clear_env(ctx, filter_status, filter_sprint, filter_label, filter_key
         click.echo("  --no-dry-run pour appliquer\n")
 
 
+@labels.command("check-env")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.pass_context
+def labels_check_env(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                     filter_summary, filter_assignee, filter_points_min, filter_points_max):
+    """Check ops/infra stories for missing environment coverage."""
+    from kpi.domain.models import OPS_LABELS, ENV_NAMES
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    ops_labels_str = ", ".join(sorted(OPS_LABELS))
+    click.echo(f"\n  🔍 check-env — labels ops: {ops_labels_str}")
+    click.echo(f"  envs attendus: {', '.join(ENV_NAMES)}")
+    click.echo(f"  {'─'*60}")
+    warnings = 0
+    for s in matched:
+        ops = [l for l in s.labels if l in OPS_LABELS]
+        if not ops:
+            continue
+        existing = [l.split(":", 1)[1] for l in s.labels if l.startswith("env:")]
+        missing = [e for e in ENV_NAMES if e not in existing]
+        if missing:
+            warnings += 1
+            click.echo(f"  ⚠️  {s.key} — {s.summary[:50]}")
+            click.echo(f"      labels ops: {ops}")
+            click.echo(f"      envs: {existing or ['aucun']}  manquants: {missing}")
+            click.echo(f"      status: {s.status}  points: {s.story_points}")
+    if warnings == 0:
+        click.echo("  ✅ Toutes les stories ops/infra ont une couverture env complète.")
+    else:
+        click.echo(f"\n  ⚠️  {warnings} stories ops/infra sans couverture env complète")
+        click.echo("  → utilisez 'kpi labels env <env> -l <ops_label>' pour assigner\n")
+
+
 @labels.command("list")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
