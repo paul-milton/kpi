@@ -419,22 +419,23 @@ class KPICalculator:
             keys.update(self._tag_score_keys(c, stories))
         return keys
 
-    @staticmethod
-    def _merge_dim_into_tags(tags: list[TagScore], dims: list[DimensionKPI]) -> None:
+    def _merge_dim_into_tags(self, tags: list[TagScore], dims: list[DimensionKPI]) -> None:
         """Merge operational DimensionKPI data into TagScore objects (Story 2-2).
 
         Both lists share the same tree structure (same dimension nodes),
         so we merge by matching index positions recursively.
+        Weather is derived from the structural score (tag.score) so that
+        the icon matches the percentage displayed in the domain table.
         """
         for tag, dim in zip(tags, dims):
-            tag.weather = dim.weather
+            tag.weather = self._weather(tag.score)
             tag.completion_ratio = dim.completion_ratio
             tag.done_points = dim.done_points
             tag.estimated_remaining = dim.estimated_remaining
             tag.breakdown = dim.breakdown
             tag.stories = dim.stories
             if tag.children and dim.children:
-                KPICalculator._merge_dim_into_tags(tag.children, dim.children)
+                self._merge_dim_into_tags(tag.children, dim.children)
 
     def _backlog_stability(self, stories: list[JiraStory],
                            cur_sprint: any, raf: RAFEstimation | None) -> BacklogStability:
