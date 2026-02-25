@@ -247,10 +247,20 @@ class JiraAdapter:
         return vels
 
     def _update_issue(self, key: str, data: dict) -> None:
-        """Update issue with optional notification suppression."""
-        notify = "true" if self._notify else "false"
-        url = f"rest/api/2/issue/{key}?notifyUsers={notify}"
-        self._client.put(url, data=data)
+        """Update issue with optional notification suppression.
+        Falls back to default (with notifications) if notifyUsers requires admin rights."""
+        if not self._notify:
+            try:
+                resp = self._client.put(f"rest/api/2/issue/{key}?notifyUsers=false",
+                                         data=data, advanced_mode=True)
+                if resp.status_code < 300:
+                    return
+                # Permission denied on notifyUsers - fallback to default
+                if resp.status_code in (400, 403):
+                    logger.debug("notifyUsers_fallback", key=key, status=resp.status_code)
+            except Exception:
+                pass
+        self._client.put(f"rest/api/2/issue/{key}", data=data)
 
     def add_labels(self, key: str, labels: list[str]) -> bool:
         """Add labels to a Jira issue."""
@@ -290,9 +300,16 @@ class JiraAdapter:
         if story_points is not None:
             fields[self._sp_field] = story_points
         try:
-            notify = "true" if self._notify else "false"
-            resp = self._client.post(f"rest/api/2/issue?notifyUsers={notify}",
-                                     data={"fields": fields})
+            resp = None
+            if not self._notify:
+                try:
+                    resp = self._client.post(f"rest/api/2/issue?notifyUsers=false",
+                                              data={"fields": fields})
+                except Exception:
+                    resp = None
+            if resp is None or (isinstance(resp, dict) and not resp.get("key")):
+                resp = self._client.post(f"rest/api/2/issue",
+                                          data={"fields": fields})
             key = resp.get("key", "") if isinstance(resp, dict) else ""
             if key:
                 logger.info("subtask_created", parent=parent_key, key=key, summary=summary[:60])
