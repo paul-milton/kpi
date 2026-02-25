@@ -591,6 +591,100 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
     click.echo(f"\n  🌍 {created}/{total_tasks} sous-tâches créées\n")
 
 
+@labels.command("suggest")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                   filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """All-in-one: cleanup orphan labels + semantic re-tag + conception + derive compounds."""
+    from kpi.domain.dimensions import flatten_all, parse_dimensions
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); tagger = SemanticTagger(cfg)
+    stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    dims = parse_dimensions(cfg["dimensions"])
+    known = {n.label for n in flatten_all(dims)}
+    rules = sorted(LABEL_DERIVE_RULES, key=lambda r: -len(r["source"]))
+
+    actions: list[dict] = []  # {story, remove: [], add: []}
+    for s in matched:
+        sl = set(s.labels)
+        remove = [l for l in s.labels if l not in known and not l.startswith("env:")]
+        add = []
+        # Semantic dimension tags
+        for sug in tagger.suggest_labels(s):
+            if sug.label not in sl and sug.label not in add:
+                add.append(sug.label)
+        # Conception tags
+        for sug in tagger.suggest_conception(s):
+            if sug.label not in sl and sug.label not in add:
+                add.append(sug.label)
+        # Derive compound labels (including from new adds)
+        future_labels = (sl | set(add)) - set(remove)
+        for rule in rules:
+            if all(l in future_labels for l in rule["source"]):
+                for t in rule["target"]:
+                    if t not in future_labels and t not in add:
+                        add.append(t)
+                        future_labels.add(t)
+        if remove or add:
+            actions.append({"story": s, "remove": remove, "add": add})
+
+    if not actions:
+        click.echo("\n  rien a faire - tous les labels sont corrects.\n")
+        return
+
+    total_rm = sum(len(a["remove"]) for a in actions)
+    total_add = sum(len(a["add"]) for a in actions)
+    click.echo(f"\n  🎯 suggest - {len(actions)} stories, {click.style(f'-{total_rm}', fg='red')} orphelins, {click.style(f'+{total_add}', fg='green')} nouveaux\n")
+
+    if dry_run:
+        for a in actions[:40]:
+            s = a["story"]
+            click.echo(f"  {click.style(s.key, bold=True)} {s.summary[:55]}")
+            if a["remove"]:
+                click.echo(f"    {click.style('- ' + ', '.join(a['remove']), fg='red')}")
+            if a["add"]:
+                click.echo(f"    {click.style('+ ' + ', '.join(a['add']), fg='green')}")
+        if len(actions) > 40:
+            click.echo(f"  ... et {len(actions) - 40} autres")
+        click.echo("\n  DRY RUN - --no-dry-run pour appliquer\n")
+        return
+
+    ok = 0; auto = False; tot = len(actions)
+    for idx, a in enumerate(actions, 1):
+        s = a["story"]
+        if not auto:
+            click.echo(f"\n  {'─'*55}")
+            click.echo(f"  [{idx}/{tot}] {click.style(s.key, bold=True)} {s.summary[:55]}")
+            if a["remove"]:
+                click.echo(f"    {click.style('- ' + ', '.join(a['remove']), fg='red')}")
+            if a["add"]:
+                click.echo(f"    {click.style('+ ' + ', '.join(a['add']), fg='green')}")
+            r = _confirm_one(f"Appliquer ?")
+            if r == "q": break
+            if r == "n": continue
+            if r == "a": auto = True
+        success = True
+        if a["remove"]:
+            success = j.remove_labels(s.key, a["remove"]) and success
+        if a["add"]:
+            success = j.add_labels(s.key, a["add"]) and success
+        if success:
+            ok += 1
+            click.echo(f"    {click.style('OK', fg='green')} {s.key}")
+    click.echo(f"\n  {ok}/{tot} stories modifiees\n")
+
+
 @labels.command("suggest-conception")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")

@@ -1522,6 +1522,18 @@ t("derive_rule_tests_backend", '"tests", "backend"' in cli_fresh and '"tests-int
 t("derive_rule_conception_tech", '"conception", "technique"' in cli_fresh and '"conception-technique"' in cli_fresh)
 t("derive_rule_conception_fonc", '"conception", "fonctionnel"' in cli_fresh and '"conception-fonctionnelle"' in cli_fresh)
 
+# CLI: labels suggest (all-in-one) command
+t("cli_labels_suggest_cmd", '"suggest"' in cli_fresh and 'labels_suggest' in cli_fresh)
+t("cli_suggest_cleanup_orphans", 'orphelins' in cli_fresh)
+t("cli_suggest_derive_compound", 'LABEL_DERIVE_RULES' in cli_fresh)
+t("cli_suggest_conception_included", 'suggest_conception' in cli_fresh)
+t("cli_suggest_semantic_included", 'suggest_labels' in cli_fresh)
+
+# Tagger: spaCy auto-download
+with open(os.path.join(BASE, 'services', 'tagger.py')) as f: tagger_code=f.read()
+t("tagger_spacy_autodownload", '"download", "fr_core_news_sm"' in tagger_code)
+t("tagger_spacy_proxy", 'os.environ' in tagger_code)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

@@ -13,13 +13,30 @@ from kpi.domain.dimensions import flatten_taggable, parse_dimensions
 from kpi.domain.models import DimensionNode, JiraStory, TagSuggestion
 logger = structlog.get_logger()
 
-# ── spaCy French model (optional) ──
+# ── spaCy French model (optional, auto-download) ──
+_HAS_NLP = False
+_nlp = None
 try:
     import spacy
-    _nlp = spacy.load("fr_core_news_sm")
-    _HAS_NLP = True
-except (ImportError, OSError):
-    _HAS_NLP = False
+    try:
+        _nlp = spacy.load("fr_core_news_sm")
+        _HAS_NLP = True
+    except OSError:
+        # Auto-download model (respects system proxy via env vars)
+        import subprocess, sys, os
+        logger.info("spacy_download", model="fr_core_news_sm")
+        env = os.environ.copy()  # inherits HTTP_PROXY / HTTPS_PROXY
+        try:
+            subprocess.check_call(
+                [sys.executable, "-m", "spacy", "download", "fr_core_news_sm"],
+                env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            _nlp = spacy.load("fr_core_news_sm")
+            _HAS_NLP = True
+            logger.info("spacy_downloaded_ok")
+        except Exception as dl_err:
+            logger.warning("spacy_download_failed", err=str(dl_err)[:80])
+except ImportError:
+    pass  # spacy not installed at all
 
 # French suffixes for fallback stemming
 _FR_SUFFIXES = [
