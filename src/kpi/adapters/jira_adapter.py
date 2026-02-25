@@ -220,9 +220,11 @@ class JiraAdapter:
     def fetch_velocities(self) -> list[SprintVelocity]:
         """Compute velocity per closed sprint (pts/week)."""
         st = getattr(self, '_discovered_story_types', self._story_types)
+        tt = getattr(self, '_discovered_task_types', self._task_types)
+        all_types = list(dict.fromkeys(st + tt))  # deduplicated, order preserved
         stories = self._jql(
             f'project="{self._project}" AND sprint in closedSprints() '
-            f'AND issuetype in ({_jql_list(st)})')
+            f'AND issuetype in ({_jql_list(all_types)})')
         by_sprint: dict[str, list[JiraStory]] = {}
         for s in stories:
             if s.sprint: by_sprint.setdefault(s.sprint, []).append(s)

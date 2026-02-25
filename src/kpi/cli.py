@@ -40,6 +40,8 @@ def _fetch(cfg):
     try: vels = j.fetch_velocities()
     except Exception as e:
         logger.warning("velocities_failed", err=str(e)[:120]); vels = []
+    if not vels:
+        click.echo("  ⚠️  Velocite indisponible (pas de sprints fermes ou erreur Jira).")
     try: sprints = j.fetch_sprints()
     except Exception as e:
         logger.warning("sprints_failed", err=str(e)[:120]); sprints = []

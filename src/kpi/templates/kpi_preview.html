@@ -169,14 +169,12 @@
     <th class="th th-default">Clé</th>
     <th class="th th-default">Résumé</th>
     <th class="th th-default">Points</th>
-    <th class="th th-default">Assigné</th>
   </tr>
   {%for s in r.blocked_stories%}
   <tr class="bg-err-bg">
     <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td>
     <td class="px-2 py-1 border-b border-gray-100">{{s.summary}}</td>
     <td class="px-2 py-1 border-b border-gray-100 text-center">{{s.story_points}} pts</td>
-    <td class="px-2 py-1 border-b border-gray-100">{{s.assignee or '—'}}</td>
   </tr>
   {%endfor%}
   </table>
