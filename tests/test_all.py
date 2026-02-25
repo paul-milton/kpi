@@ -1412,7 +1412,7 @@ with open(os.path.join(BASE, 'services', 'calculator.py')) as f: calc=f.read()
 t("calc_date_done_pts", 'date_done_pts' in calc)
 t("calc_date_stories_passed", 'date_stories=date_stories' in calc)
 t("tpl_date_uses_date_stories", 'r.date_stories' in open(os.path.join(BASE, 'templates', 'kpi_date.html')).read())
-t("tpl_topbox_date_done_points", 'r.date_done_points' in macros)
+t("tpl_topbox_date_effective_points", 'r.date_effective_points' in macros)
 
 # JiraAdapter create_subtask method
 with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja_code=f.read()

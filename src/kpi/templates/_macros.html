@@ -96,15 +96,15 @@
     <div class="topbox-bottom">
       <div class="grid grid-cols-2 gap-2 mt-3">
         <div class="topbox-subcard bg-ok-bg">
-          <div class="topbox-sub">{{r.date_done_points}} <span class="topbox-label">points</span></div>
-          <div class="topbox-label">livrés à date</div>
+          <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">points</span></div>
+          <div class="topbox-label">effectifs à date</div>
         </div>
         <div class="topbox-subcard bg-muted-bg">
           <div class="topbox-sub">{{r.date_total_points}} <span class="topbox-label">points</span></div>
           <div class="topbox-label">planifiés à date</div>
         </div>
       </div>
-      <div class="topbox-label mt-1.5">score pondéré des livrables planifiés jusqu'au sprint courant</div>
+      <div class="topbox-label mt-1.5">score pondéré incluant en-cours du sprint courant (livrés + en-cours pondérés)</div>
     </div>
   </div>
   {# ── CARRÉ SCORE GLOBAL D'AVANCEMENT ── #}
@@ -133,7 +133,7 @@
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
       <li>Chaque livrable est pondéré par ses story points&nbsp;: un livrable de 13 pts pèse plus qu'un de 3 pts</li>
       <li>Livrable livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
-      <li><strong>Score projet à date</strong>&nbsp;: ne mesure que les livrables planifiés jusqu'au sprint courant</li>
+      <li><strong>Score projet à date</strong>&nbsp;: livrables planifiés jusqu'au sprint courant, en-cours pondérés (50&nbsp;%), revue (75&nbsp;%), test (65&nbsp;%)</li>
       <li><strong>Score global d'avancement</strong>&nbsp;: inclut tous les livrables du projet + projections futures</li>
     </ul>
   </div>

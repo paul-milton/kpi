@@ -171,6 +171,15 @@ class KPICalculator:
         date_done_fallback = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
         date_done_pts = max(velocity_done + current_sprint_done, date_done_fallback) if velocities else date_done_fallback
 
+        # Effective points: done + weighted in-progress/review/testing from current sprint
+        current_sprint_weighted = sum(
+            s.story_points * TAG_STATUS_WEIGHTS.get(s.status, 0.0)
+            for s in date_stories
+            if s.status not in COMPLETED_STATUSES
+            and _sprint_num(s.sprint) == snum
+        )
+        date_effective_pts = round(date_done_pts + current_sprint_weighted, 1)
+
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name,
                                           current_sprint_num=snum) for n in self._dims]
         date_ratio = date_done_pts / date_total_pts if date_total_pts > 0 else 0.0
@@ -227,6 +236,7 @@ class KPICalculator:
             tag_scores=tag_scores,
             date_total_points=date_total_pts,
             date_done_points=date_done_pts,
+            date_effective_points=date_effective_pts,
             date_stories=date_stories,
             score_global_date=round(score_global_date, 4),
             score_global_project=round(score_global_project, 4),
