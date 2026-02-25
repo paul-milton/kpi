@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ r.project_name or 'KPI' }} — À Date — Sprint {{ r.sprint_number }}</title>
+<title>{{ r.project_name or 'KPI' }} -À Date -Sprint {{ r.sprint_number }}</title>
 {% include '_shared.html' %}
 </head>
 {% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, project_header, top_boxes, env_table, velocity_table, fold_js with context %}
@@ -16,13 +16,13 @@
 {# ══════════ DÉTAIL ══════════ #}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
 
-  {# Story points + User stories — scope "à date" (sprints passés/courant) #}
+  {# Story points + User stories -scope "à date" (sprints passés/courant) #}
   {%- set ds = r.date_stories -%}
   {%- set date_active_pts = ds|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
   {%- set date_weighted_pts = (date_active_pts * 0.5)|round(0)|int -%}
   {%- set date_blocked = ds|selectattr('status','equalto','blocked')|list -%}
   <div class="grid grid-cols-4 gap-2 mt-1">
-    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points <span class="text-[10px] text-muted font-normal">— scope à date</span></div>
+    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points <span class="text-[10px] text-muted font-normal">-scope à date</span></div>
     <div class="kcard bg-ok-bg">
       <div class="kcard-title">Points terminés</div>
       <div class="kcard-value">{{r.date_done_points}}</div>
@@ -44,7 +44,7 @@
       <div class="kcard-value">{{date_blocked|sum(attribute='story_points')}}</div>
       <div class="kcard-unit">points</div>
     </div>
-    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories <span class="text-[10px] text-muted font-normal">— scope à date</span></div>
+    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories <span class="text-[10px] text-muted font-normal">-scope à date</span></div>
     <div class="kcard bg-ok-bg">
       <div class="kcard-title">Terminées</div>
       <div class="kcard-value">{{ds|selectattr('status','in',['done','delivered'])|list|length}}</div>
@@ -73,7 +73,7 @@
 {%- set TD = {} -%}
 {%- for c in r.comparisons if c.label.startswith('Tag: ') -%}{%- if TD.update({c.label: c}) -%}{%- endif -%}{%- endfor -%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
+  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">-&#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
     <strong>Score structurel</strong> ≠ ratio terminé/total.
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
@@ -103,7 +103,7 @@
 {# ══════════ BLOQUÉS ══════════ #}
 {%if r.blocked_stories%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
+  <h2 class="section-title">&#x1F6A8; User stories bloquées -{{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="th th-default">Clé</th>
@@ -121,7 +121,7 @@
 </div>
 {%endif%}
 
-<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">KPI v8 — rapport à date — sprint {{r.sprint_number}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">KPI v8 -rapport à date -sprint {{r.sprint_number}} -{{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
 </div>
 
 {{ fold_js() }}

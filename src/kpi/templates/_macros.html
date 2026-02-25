@@ -41,8 +41,8 @@
 {%- set has_prev = r.variations|length > 0 -%}
 <div class="bg-white rounded-lg shadow-sm px-5 py-3 mb-3 text-center">
   <div style="font-size:22px;font-weight:700;color:#253858">{{r.project_name or 'Projet'}}</div>
-  <div class="text-muted text-[12px] mt-1">Sprint {{r.sprint_number}} — S{{r.week_number}}/{{r.year}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
-  {%- if has_prev %}<div class="text-[10px] text-dim mt-0.5">Comparaison avec la période précédente — les variations sont indiquées entre parenthèses</div>{%- endif %}
+  <div class="text-muted text-[12px] mt-1">Sprint {{r.sprint_number}} -S{{r.week_number}}/{{r.year}} -{{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+  {%- if has_prev %}<div class="text-[10px] text-dim mt-0.5">Comparaison avec la période précédente -les variations sont indiquées entre parenthèses</div>{%- endif %}
 </div>
 {%- endmacro -%}
 
@@ -54,7 +54,7 @@
   <div class="topbox">
     <div class="topbox-title">Météo projet</div>
     <div style="font-size:56px;line-height:1.1">{{r.overall_weather.value}}</div>
-    <div class="topbox-sub mt-1">{{weather_map[r.overall_weather.value] or '—'}}</div>
+    <div class="topbox-sub mt-1">{{weather_map[r.overall_weather.value] or '-'}}</div>
     <div class="topbox-bottom">
       <div class="grid grid-cols-2 gap-2 mt-3">
         <div class="topbox-subcard bg-muted-bg">
@@ -129,7 +129,7 @@
 </div>
 <div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
   <div class="pedagogy" style="margin:0">
-    <strong>Scores d'avancement</strong> — mesure la complétude pondérée des <strong>livrables</strong> (user stories), pas un simple ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
+    <strong>Scores d'avancement</strong> -mesure la complétude pondérée des <strong>livrables</strong> (user stories), pas un simple ratio terminé/total ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
       <li>Chaque livrable est pondéré par ses story points&nbsp;: un livrable de 13 pts pèse plus qu'un de 3 pts</li>
       <li>Livrable livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
@@ -202,7 +202,7 @@
   <div class="mt-2 p-2 bg-warn-bg rounded text-xs">
     <div class="font-semibold mb-1">&#x26A0;&#xFE0F; {{r.env_coverage_warnings|length}} stories ops/infra sans couverture env compl&egrave;te</div>
     {%- for w in r.env_coverage_warnings[:10] -%}
-    <div class="ml-2">&#x2022; <a class="jk" href="{{r.jira_base_url}}/browse/{{w.story_key}}" target="_blank">{{w.story_key}}</a> — {{w.summary[:50]}} <span class="text-muted">(manquants: {{w.missing_envs|join(', ')}})</span></div>
+    <div class="ml-2">&#x2022; <a class="jk" href="{{r.jira_base_url}}/browse/{{w.story_key}}" target="_blank">{{w.story_key}}</a> -{{w.summary[:50]}} <span class="text-muted">(manquants: {{w.missing_envs|join(', ')}})</span></div>
     {%- endfor -%}
     {%- if r.env_coverage_warnings|length > 10 -%}
     <div class="ml-2 text-muted">... et {{r.env_coverage_warnings|length - 10}} autres</div>

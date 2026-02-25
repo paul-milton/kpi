@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{{ r.project_name or 'KPI' }} — Global Projet — Sprint {{ r.sprint_number }}</title>
+<title>{{ r.project_name or 'KPI' }} -Global Projet -Sprint {{ r.sprint_number }}</title>
 {% include '_shared.html' %}
 </head>
 {% from '_macros.html' import delta, pbar, ratio_bg, status_bg, unified_tree, project_header, top_boxes, env_table, velocity_table, fold_js with context %}
@@ -47,7 +47,7 @@
   </div>
   {%endif%}
 
-  {# Story points + User stories — colonnes alignées #}
+  {# Story points + User stories -colonnes alignées #}
   {%- set active_pts = r.all_stories|selectattr('status','in',['in-progress','review','testing'])|sum(attribute='story_points') -%}
   {%- set weighted_pts = (active_pts * 0.5)|round(0)|int -%}
   {%- set projet_estime = r.done_points + r.estimated_remaining -%}
@@ -104,7 +104,7 @@
 {%- set TD = {} -%}
 {%- for c in r.comparisons if c.label.startswith('Tag: ') -%}{%- if TD.update({c.label: c}) -%}{%- endif -%}{%- endfor -%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">— &#x25BE; déplier, &#x1F4CB; stories</span></h2>
+  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">-&#x25BE; déplier, &#x1F4CB; stories</span></h2>
   <div class="pedagogy mb-2">
     <strong>Score structurel</strong> ≠ ratio terminé/total.
     <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
@@ -130,7 +130,7 @@
 {# ══════════ PROJECTION RAF ══════════ #}
 {%if r.raf%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F4C8; Projection — {{r.raf.avg_velocity_per_week}} pts/sem</h2>
+  <h2 class="section-title">&#x1F4C8; Projection -{{r.raf.avg_velocity_per_week}} pts/sem</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="th th-default whitespace-nowrap">Terminés</th>
@@ -163,7 +163,7 @@
 {# ══════════ BLOQUÉS ══════════ #}
 {%if r.blocked_stories%}
 <div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
-  <h2 class="section-title">&#x1F6A8; User stories bloquées — {{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
+  <h2 class="section-title">&#x1F6A8; User stories bloquées -{{r.blocked_stories|length}} US ({{r.blocked_stories|sum(attribute='story_points')}} pts)</h2>
   <table class="w-full border-collapse text-xs">
   <tr>
     <th class="th th-default">Clé</th>
@@ -181,7 +181,7 @@
 </div>
 {%endif%}
 
-<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">KPI v8 — rapport global projet — sprint {{r.sprint_number}} — {{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
+<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">KPI v8 -rapport global projet -sprint {{r.sprint_number}} -{{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
 </div>
 
 {{ fold_js() }}
