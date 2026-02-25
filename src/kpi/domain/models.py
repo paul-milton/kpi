@@ -252,6 +252,15 @@ class ComparisonResult(BaseModel):
         return "flat"
 
 
+class EnvBreakdown(BaseModel):
+    """Stories grouped by env: label (max 1 env per story)."""
+    env_name: str
+    story_count: int = 0
+    total_points: int = 0
+    done_points: int = 0
+    stories: list[str] = Field(default_factory=list)
+
+
 class TagSuggestion(BaseModel):
     story_key: str
     story_summary: str = ""
@@ -317,3 +326,4 @@ class WeeklyReport(BaseModel):
     comparisons: list[ComparisonResult] = Field(default_factory=list)
     all_stories: list[JiraStory] = Field(default_factory=list)
     sprint_timeline: list[SprintInfo] = Field(default_factory=list)
+    env_breakdown: list[EnvBreakdown] = Field(default_factory=list)

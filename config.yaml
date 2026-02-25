@@ -10,7 +10,6 @@ jira:
     - "fonctionnalites:"
     - "design:"
     - "technique:"
-    - "env:"
   status_mapping:
     backlog: ["Nouveau", "Ouvert", "Open", "New"]
     specification: ["Rédigée", "Affinage", "A affiner"]

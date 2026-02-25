@@ -36,6 +36,8 @@ SUMMARIES = [
     "Optimize {tag} performance", "Deploy {tag} feature", "Audit {tag} security",
 ]
 
+ENV_LABELS = ["env:dev", "env:recette", "env:preprod", "env:prod"]
+
 
 class MockGenerator:
     def __init__(self, cfg: dict[str, Any], seed: int = 42) -> None:
@@ -66,6 +68,9 @@ class MockGenerator:
             # Assign tags from dimension tree
             n_tags = self._rng.randint(1, min(4, len(self._tag_labels)))
             labels = self._rng.sample(self._tag_labels, min(n_tags, len(self._tag_labels)))
+            # ~30% of stories get an env: label (max 1)
+            if self._rng.random() < 0.30:
+                labels.append(self._rng.choice(ENV_LABELS))
             tag_display = labels[0] if labels else "general"
 
             # Sprint assignment: done→past, active→current, backlog→future/none

@@ -1169,6 +1169,123 @@ t("doc_pedagogical_examples", "80% d'avancement" in doc and "ratio 1.0" in doc)
 # AC5: Existing tests still pass (verified by running full suite)
 t("time_progress_populated", dl_report.time_progress == round(dl_report.time_progress, 4))
 
+# ═══════════════════════════════════════════════════════
+# TAGGER: French NLP — accent stripping, stemming, fuzzy
+# ═══════════════════════════════════════════════════════
+print("\n  ▸ Tagger: French NLP")
+
+from kpi.services.tagger import _strip_accents, _stem_french, _fuzzy_score, _lemmatize
+
+# Accent stripping
+t("strip_accents_basic", _strip_accents("référentiel") == "referentiel")
+t("strip_accents_cedilla", _strip_accents("français") == "francais")
+t("strip_accents_circumflex", _strip_accents("enquête") == "enquete")
+t("strip_accents_empty", _strip_accents("") == "")
+t("strip_accents_no_accent", _strip_accents("test") == "test")
+
+# French stemming
+t("stem_french_ation", _stem_french("validation") == "valid")
+t("stem_french_ment", _stem_french("deploiement") == "deploi")
+t("stem_french_eur", _stem_french("utilisateur") == "utilisat")
+t("stem_french_ique", _stem_french("technique") == "techn")
+t("stem_french_plural_s", _stem_french("tests") == "test")
+t("stem_french_short", _stem_french("api") == "api")
+
+# Fuzzy score
+t("fuzzy_exact", _fuzzy_score("test", "this is a test string") == 1.0)
+t("fuzzy_accent_match", _fuzzy_score("référentiel", "referentiel des structures") >= 0.9)
+t("fuzzy_stemmed_match", _fuzzy_score("validation", "valider les enquetes") >= 0.8)
+t("fuzzy_no_match", _fuzzy_score("xyz123", "abc def ghi") < 0.5)
+t("fuzzy_empty", _fuzzy_score("", "test") == 0.0)
+t("fuzzy_multiword", _fuzzy_score("test unitaire", "les tests unitaires sont importants") >= 0.8)
+
+# Lemmatize (works with or without spaCy)
+t("lemmatize_nonempty", len(_lemmatize("référentiel des structures")) > 0)
+t("lemmatize_empty", _lemmatize("") == "")
+
+# Tagger code checks
+with open(os.path.join(BASE, 'services', 'tagger.py')) as f: tagger_code=f.read()
+t("tagger_has_spacy_try", 'import spacy' in tagger_code)
+t("tagger_has_nlp_flag", '_HAS_NLP' in tagger_code)
+t("tagger_has_lemmatize", '_lemmatize' in tagger_code)
+t("tagger_has_strip_accents", '_strip_accents' in tagger_code)
+t("tagger_has_stem_french", '_stem_french' in tagger_code)
+t("tagger_has_fuzzy_score", '_fuzzy_score' in tagger_code)
+t("tagger_phase_exact", "Phase 1" in tagger_code)
+t("tagger_phase_lemma", "Phase 2" in tagger_code)
+t("tagger_phase_fuzzy", "Phase 3" in tagger_code)
+
+# SemanticTagger functional test with lemma/fuzzy
+from kpi.services.tagger import SemanticTagger
+tagger_cfg = {
+    "dimensions": [
+        {"label": "test-dim", "display": "Test", "keywords": ["référentiel", "validation"]},
+    ],
+    "domain_weight": {},
+    "tagger": {"confidence_threshold": 0.35, "max_labels_per_story": 6},
+}
+st = SemanticTagger(tagger_cfg)
+# Exact match
+s1 = JiraStory(key="T1", summary="Référentiel des métiers", status=StoryStatus.BACKLOG, story_points=5)
+sug1 = st.suggest_labels(s1)
+t("tagger_exact_match", len(sug1) > 0 and sug1[0].label == "test-dim")
+
+# ═══════════════════════════════════════════════════════
+# ENV BREAKDOWN: env: labels + max 1 per story
+# ═══════════════════════════════════════════════════════
+print("\n  ▸ Env breakdown")
+
+from kpi.domain.models import EnvBreakdown
+
+# Model
+eb = EnvBreakdown(env_name="prod", story_count=3, total_points=15, done_points=10)
+t("env_model_name", eb.env_name == "prod")
+t("env_model_points", eb.total_points == 15 and eb.done_points == 10)
+t("env_model_serializable", json.dumps(eb.model_dump(mode="json")) is not None)
+
+# WeeklyReport has env_breakdown field
+t("model_env_breakdown", 'env_breakdown' in WeeklyReport.model_fields)
+
+# Calculator computes env breakdown
+env_stories = [
+    JiraStory(key="E1", summary="prod deploy", status=StoryStatus.DONE, story_points=5, labels=["backend", "env:prod"]),
+    JiraStory(key="E2", summary="recette test", status=StoryStatus.IN_PROGRESS, story_points=3, labels=["backend", "env:recette"]),
+    JiraStory(key="E3", summary="prod config", status=StoryStatus.DONE, story_points=8, labels=["backend", "env:prod"]),
+    JiraStory(key="E4", summary="no env", status=StoryStatus.BACKLOG, story_points=2, labels=["backend"]),
+]
+env_calc = KPICalculator({
+    "dimensions": [{"label": "backend", "display": "Backend", "keywords": ["backend"]}],
+    "domain_weight": {},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+})
+env_report = env_calc.compute(env_stories, [])
+t("env_breakdown_count", len(env_report.env_breakdown) == 2, f"got {len(env_report.env_breakdown)}")
+prod_eb = next((e for e in env_report.env_breakdown if e.env_name == "prod"), None)
+t("env_breakdown_prod", prod_eb is not None and prod_eb.story_count == 2 and prod_eb.total_points == 13)
+t("env_breakdown_prod_done", prod_eb is not None and prod_eb.done_points == 13)
+rec_eb = next((e for e in env_report.env_breakdown if e.env_name == "recette"), None)
+t("env_breakdown_recette", rec_eb is not None and rec_eb.story_count == 1)
+t("env_breakdown_no_env_excluded", not any(e.env_name == "" for e in env_report.env_breakdown))
+
+# Templates have env_table
+t("tpl_env_table_macro", 'env_table' in tpl_date2 or 'env_table' in tpl_proj2)
+t("tpl_env_import", 'env_table' in open(os.path.join(BASE, 'templates', 'kpi_project.html')).read())
+
+# Calculator code check
+with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc_env=f.read()
+t("calc_env_breakdown", '_compute_env_breakdown' in cc_env)
+t("calc_env_model_import", 'EnvBreakdown' in cc_env)
+
+# Mock has env labels
+with open(os.path.join(BASE, 'services', 'mock.py')) as f: mock_code=f.read()
+t("mock_env_labels", 'ENV_LABELS' in mock_code and 'env:' in mock_code)
+
+# Config: env: removed from legacy prefixes (now handled properly)
+t("cfg_env_not_legacy", "env:" not in str(CFG["jira"].get("legacy_label_prefixes", [])))
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

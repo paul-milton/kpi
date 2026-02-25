@@ -172,6 +172,36 @@
 {%- endfor -%}
 {%- endmacro -%}
 
+{# ── Tableau environnements ── #}
+{%- macro env_table() -%}
+{%- if r.env_breakdown -%}
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F30D; Environnements</h2>
+  <table class="w-full border-collapse text-xs">
+  <thead><tr>
+    <th class="th th-default min-w-[140px]">Environnement</th>
+    <th class="th th-default">Stories</th>
+    <th class="th th-default">Points totaux</th>
+    <th class="th th-default">Points termin&eacute;s</th>
+    <th class="th th-default min-w-[120px]">Avancement</th>
+  </tr></thead>
+  <tbody>
+  {%- for eb in r.env_breakdown -%}
+  {%- set ratio = (eb.done_points / eb.total_points) if eb.total_points else 0.0 -%}
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">{{eb.env_name}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{eb.story_count}}</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">{{eb.total_points}} pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">{{eb.done_points}} pts</td>
+    <td class="px-2 py-1 border-b border-gray-100">{{ pbar(ratio, 100, 12, 11) }}</td>
+  </tr>
+  {%- endfor -%}
+  </tbody>
+  </table>
+</div>
+{%- endif -%}
+{%- endmacro -%}
+
 {# ── JS fold/unfold ── #}
 {%- macro fold_js() -%}
 <script>

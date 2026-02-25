@@ -16,9 +16,9 @@ import structlog
 from kpi.domain.dimensions import parse_dimensions
 from kpi.domain.models import (
     ACTIVE_STATUSES, COMPLETED_STATUSES, BacklogStability, ComplementaryKPIs,
-    ComparisonResult, DimensionKPI, DimensionNode, JiraStory, ProjectionEstimate,
-    RAFEstimation, Snapshot, SprintVelocity, StatusBreakdown, StoryStatus,
-    TagScore, Variation, WeatherIcon, WeeklyReport,
+    ComparisonResult, DimensionKPI, DimensionNode, EnvBreakdown, JiraStory,
+    ProjectionEstimate, RAFEstimation, Snapshot, SprintVelocity, StatusBreakdown,
+    StoryStatus, TagScore, Variation, WeatherIcon, WeeklyReport,
 )
 from kpi.services.dates import build_sprint_calendar, business_days_france, find_current_sprint, parse_date, weeks_elapsed, weeks_remaining
 
@@ -167,6 +167,9 @@ class KPICalculator:
         comparisons = self._comparisons(
             score_global_project, tag_scores, backlog_stability, complementary_kpis, previous)
 
+        # Env breakdown
+        env_breakdown = self._compute_env_breakdown(live)
+
         return WeeklyReport(
             generated_at=now, week_number=now.isocalendar()[1], year=now.year,
             sprint_name=f"Sprint {snum}", sprint_number=snum, sprint_week=sweek,
@@ -194,6 +197,7 @@ class KPICalculator:
             complementary_kpis=complementary_kpis,
             comparisons=comparisons,
             all_stories=live, sprint_timeline=timeline,
+            env_breakdown=env_breakdown,
         )
 
     def _dim_kpi(self, node: DimensionNode, stories: list[JiraStory],
@@ -522,6 +526,29 @@ class KPICalculator:
                 label="Doc Index", current=round(comp_kpis.doc_index, 4),
                 previous=0.0))
         return results
+
+    @staticmethod
+    def _compute_env_breakdown(stories: list[JiraStory]) -> list[EnvBreakdown]:
+        """Group stories by env: label. Max 1 env per story (warn if violated)."""
+        env_map: dict[str, list[JiraStory]] = {}
+        for s in stories:
+            envs = [l for l in s.labels if l.startswith("env:")]
+            if len(envs) > 1:
+                logger.warning("multi_env_labels", key=s.key, envs=envs)
+            env_name = envs[0].split(":", 1)[1] if envs else None
+            if env_name:
+                env_map.setdefault(env_name, []).append(s)
+        out = []
+        for env_name in sorted(env_map):
+            group = env_map[env_name]
+            out.append(EnvBreakdown(
+                env_name=env_name,
+                story_count=len(group),
+                total_points=sum(s.story_points for s in group),
+                done_points=sum(s.story_points for s in group if s.status in COMPLETED_STATUSES),
+                stories=[s.key for s in group],
+            ))
+        return out
 
     def _score_global(self, tag_scores: list[TagScore]) -> float:
         """Weighted average of top-level tag scores using domain_weight (AC #1)."""
