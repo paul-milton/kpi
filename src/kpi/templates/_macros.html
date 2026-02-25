@@ -156,11 +156,12 @@
   {%- if TD is defined -%}
   <td class="n" style="font-size:11px;font-weight:700">{%- if td_entry -%}{%- set dp = ((td_entry.current - td_entry.previous)*100)|round(1) -%}<span class="{%if dp>0%}v-pos{%elif dp<0%}v-neg{%else%}v-zero{%endif%}">{%if dp>0%}+{%endif%}{{dp}}%</span>{%- endif -%}</td>
   {%- endif -%}
+  <td class="n">{%if t.story_count > 0%}{{t.story_count}}{%endif%}</td>
   <td class="db{%if t.breakdown.blocked > 0%} dbv{%endif%}">{%if t.breakdown.blocked > 0%}{{t.breakdown.blocked}}{%endif%}</td>
 </tr>
 {%- if has_stories and lvl >= 1 -%}
 <tr class="kid p-{{parent}} hid" id="dw-{{nid}}">
-  <td colspan="{%if TD is defined%}5{%else%}4{%endif%}"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr>
+  <td colspan="{%if TD is defined%}6{%else%}5{%endif%}"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr>
   {%- for skey in t.stories -%}{%- if skey in SM -%}{%- set s = SM[skey] -%}
   <tr><td><a class="jk" href="{{r.jira_base_url}}/browse/{{s.key}}" target="_blank">{{s.key}} &#8599;</a></td><td>{{s.summary}}</td><td>{{s.status.value}}</td><td class="n">{{s.story_points}}</td><td style="font-size:9px">{{s.labels|join(', ')}}</td></tr>
   {%- endif -%}{%- endfor -%}

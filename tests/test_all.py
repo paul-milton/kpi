@@ -1542,6 +1542,23 @@ t("jira_notify_in_api", 'notifyUsers' in ja2)
 t("jira_update_issue_method", 'def _update_issue' in ja2)
 
 # ═══════════════════════════════════════════════════════
+# STORY COUNT COLUMN: Story 2-18
+# ═══════════════════════════════════════════════════════
+with open(os.path.join(BASE, 'templates', '_macros.html')) as f: mac=f.read()
+t("col_nb_us_macro_td", 't.story_count' in mac)
+t("col_nb_us_before_blocked", mac.index('t.story_count') < mac.index('t.breakdown.blocked'))
+t("col_nb_us_colspan_updated", '%}6{%' in mac and '%}5{%' in mac)
+
+for tpl_name in ['kpi_preview.html', 'kpi_date.html', 'kpi_project.html']:
+    with open(os.path.join(BASE, 'templates', tpl_name)) as f: tc=f.read()
+    t(f"col_nb_us_th_{tpl_name}", 'Nb US' in tc)
+    t(f"col_nb_us_before_blocked_{tpl_name}", tc.index('Nb US') < tc.index('US bloquées'))
+
+with open(os.path.join(BASE, 'templates', 'kpi_confluence.html.j2')) as f: cc=f.read()
+t("col_nb_us_confluence_th", 'Nb US' in cc)
+t("col_nb_us_confluence_td", 't.story_count' in cc)
+
+# ═══════════════════════════════════════════════════════
 # DEBUG SPRINTS: sprint diagnostics
 # ═══════════════════════════════════════════════════════
 with open(os.path.join(BASE, 'cli.py')) as f: cli_dbg=f.read()
