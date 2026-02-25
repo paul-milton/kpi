@@ -140,13 +140,15 @@ class KPICalculator:
         variations = self._vars(total_pts, done_pts, len(blocked), previous)  # extended below with scores
 
         # Tag scores: structural advancement per dimension (Story 1-1)
+        # Global view: no sprint penalty (status weights only)
         cur_sprint_name = f"Sprint {snum}"
-        tag_scores = [self._tag_score(n, live, cur_sprint_name) for n in self._dims]
+        tag_scores = [self._tag_score(n, live, cur_sprint_name,
+                                       apply_sprint_weight=False) for n in self._dims]
         # Merge DimensionKPI operational data into TagScore (Story 2-2)
         self._merge_dim_into_tags(tag_scores, dim_kpis)
 
         # Score_Global: weighted average of top-level tag scores (Story 1-3)
-        # "À date": only stories in current or past sprints
+        # "À date": sprint-weighted scores for current/past sprints only
         past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
         date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
         date_total_pts = sum(s.story_points for s in date_stories)
@@ -156,12 +158,11 @@ class KPICalculator:
                                                time_progress=time_progress,
                                                total_project_pts=total_pts)
 
-        # Future projection (Story 1-5): projected stories for global report
+        # Future projection (Story 1-5)
         projection = self._compute_projection(live, raf, tag_scores)
 
-        # "Global projet": all stories + projected future (smoothed: never < 50% of date score)
-        score_global_project_raw = self._score_global_with_projection(tag_scores, projection)
-        score_global_project = max(score_global_project_raw, score_global_date * 0.5)
+        # "Global projet": weighted average of tag scores (consistent with domain table)
+        score_global_project = self._score_global(tag_scores)
 
         # Backlog stability (Story 1-4)
         backlog_stability = self._backlog_stability(live, cur_sprint, raf)
@@ -355,12 +356,17 @@ class KPICalculator:
         return WeatherIcon.STORMY
 
     def _tag_score(self, node: DimensionNode, stories: list[JiraStory],
-                   current_sprint: str) -> TagScore:
-        """Compute structural advancement score for a dimension tag (AC #1-4)."""
+                   current_sprint: str, *, apply_sprint_weight: bool = True) -> TagScore:
+        """Compute structural advancement score for a dimension tag (AC #1-4).
+
+        When apply_sprint_weight=False (global project view), the sprint
+        proximity penalty is skipped — only status weights matter.
+        """
         direct = [s for s in stories if node.label in s.labels]
 
         # Recurse into children first (AC #4)
-        child_scores = [self._tag_score(c, stories, current_sprint) for c in node.children]
+        child_scores = [self._tag_score(c, stories, current_sprint,
+                                         apply_sprint_weight=apply_sprint_weight) for c in node.children]
 
         # Collect direct stories not already counted by children
         child_keys = set()
@@ -375,15 +381,18 @@ class KPICalculator:
         for s in extra:
             pts = max(s.story_points, 1)  # count 0-SP stories as 1 pt for scoring
             sw = TAG_STATUS_WEIGHTS.get(s.status, 0.0)
-            # Sprint weight (AC #3) — Done work always counts fully
-            if s.status in COMPLETED_STATUSES:
-                spw = 1.0
-            elif s.sprint and s.sprint == current_sprint:
-                spw = 1.0
-            elif s.status in ACTIVE_STATUSES:
-                spw = 0.5
+            if apply_sprint_weight:
+                # Sprint weight (AC #3) — Done work always counts fully
+                if s.status in COMPLETED_STATUSES:
+                    spw = 1.0
+                elif s.sprint and s.sprint == current_sprint:
+                    spw = 1.0
+                elif s.status in ACTIVE_STATUSES:
+                    spw = 0.5
+                else:
+                    spw = 0.1
             else:
-                spw = 0.1
+                spw = 1.0  # global view: no sprint penalty
             weighted_sum += pts * sw * spw
             total_pts += pts
             story_count += 1
@@ -642,19 +651,23 @@ class KPICalculator:
 
     def _score_global_with_projection(self, tag_scores: list[TagScore],
                                        projection: ProjectionEstimate) -> float:
-        """Score_Global projet including projected future stories (AC #4)."""
+        """Score_Global projet including projected future stories (AC #4).
+
+        Projected points expand the denominator only (more work ahead)
+        without adding phantom progress to the numerator. This keeps
+        the global score coherent with individual domain scores.
+        """
         numerator = 0.0
         denominator = 0.0
-        pw = projection.default_weight if projection else 0.3
         for ts in tag_scores:
             w = self._dw.get(ts.label, 0.0)
             if w <= 0:
                 continue
             proj_pts = projection.distribution_by_tag.get(ts.label, 0) if projection else 0
-            # Existing weighted_sum + projected pts × default_weight
+            # Denominator includes projected future work; numerator stays real
             total_pts = ts.total_points + proj_pts
             if total_pts > 0:
-                adj_score = (ts.weighted_sum + proj_pts * pw) / total_pts
+                adj_score = ts.weighted_sum / total_pts
                 numerator += adj_score * w
                 denominator += w
         return numerator / denominator if denominator > 0 else 0.0

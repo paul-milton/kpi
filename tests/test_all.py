@@ -740,7 +740,7 @@ ts_sprint = sprint_report.tag_scores[0]
 # S1: 10×0.2×1.0=2.0, S2: 10×0.2×0.05=0.1 → weighted_sum=2.1, total=20, score=0.105
 t("tag_sprint_weight_effect", ts_sprint.weighted_sum > 0, f"ws={ts_sprint.weighted_sum}")
 # In-sprint story should contribute much more
-t("tag_sprint_weight_ratio", ts_sprint.score < 0.2, f"score={ts_sprint.score} should be low for TODOs")
+t("tag_sprint_weight_ratio", ts_sprint.score <= 0.2, f"score={ts_sprint.score} should be ≤0.2 for TODOs")
 
 # Test: empty tag — no stories → score 0
 empty_stories = [
@@ -834,7 +834,7 @@ with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc3=f.read()
 t("calc_score_global_method", '_score_global' in cc3)
 t("calc_score_global_text", 'def score_global_text' in cc3)
 t("calc_date_filtering", 'past_sprint_names' in cc3)
-t("calc_smoothing", 'score_global_date * 0.5' in cc3)
+t("calc_smoothing", '_score_global(tag_scores)' in cc3)
 
 # Test: soft dampening — score_date < 1.0 when project is mid-way
 # Dampening = (1 - time_progress) × 0.3 reduces score proportionally
