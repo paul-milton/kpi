@@ -182,7 +182,14 @@ def tag(ctx, dry_run):
     if dry_run:
         for k, ls in list(by.items())[:20]: click.echo(f"    {k} → {ls}")
         click.echo("  DRY RUN — --no-dry-run\n"); return
-    ok = sum(1 for k, ls in by.items() if j.add_labels(k, ls))
+    ok = 0; auto = False
+    for k, ls in by.items():
+        if not auto:
+            r = _confirm_one(f"{k} + {ls} ?")
+            if r == "q": break
+            if r == "n": continue
+            if r == "a": auto = True
+        if j.add_labels(k, ls): ok += 1; click.echo(f"    ✅ {k}: + {ls}")
     click.echo(f"  ✅ {ok}/{len(by)}\n")
 
 
@@ -222,16 +229,24 @@ def purge_labels(ctx, pattern, use_regex, dry_run):
         match = lambda l: rx.search(l)
     else:
         match = lambda l: pattern in l
-    total_rm = 0; affected = 0
+    total_rm = 0; affected = 0; auto = False
     for s in stories:
         to_remove = [l for l in s.labels if match(l)]
         if not to_remove: continue
-        affected += 1; total_rm += len(to_remove)
         keep = [l for l in s.labels if not match(l)]
         if dry_run:
             click.echo(f"  {s.key}: ✗ {to_remove}  (garde: {keep})")
+            affected += 1; total_rm += len(to_remove)
         else:
+            if not auto:
+                click.echo(f"  {s.key}: ✗ {to_remove}  (garde: {keep})")
+                r = _confirm_one(f"Supprimer {to_remove} de {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
             j.remove_labels(s.key, to_remove)
+            affected += 1; total_rm += len(to_remove)
+            click.echo(f"    ✅ {s.key}: ✗ {to_remove}")
     click.echo(f"\n  {'DRY RUN — ' if dry_run else '✅ '}{total_rm} labels sur {affected} stories")
     if dry_run and total_rm > 0:
         click.echo("  --no-dry-run pour appliquer\n")
@@ -266,12 +281,21 @@ def labels_add(ctx, label, filter_status, filter_sprint, filter_label, filter_ke
     already = [s for s in matched if label in s.labels]
     to_add = [s for s in matched if label not in s.labels]
     click.echo(f"\n  🏷️  add '{label}' — {len(to_add)} stories ({len(already)} déjà taggées, {len(stories) - len(matched)} filtrées)")
-    for s in to_add[:30]:
-        click.echo(f"    {'DRY' if dry_run else '  ✅'} {s.key} — {s.summary[:60]}")
-    if len(to_add) > 30: click.echo(f"    ... et {len(to_add) - 30} autres")
-    if dry_run and to_add:
-        click.echo("  --no-dry-run pour appliquer\n"); return
-    ok = sum(1 for s in to_add if j.add_labels(s.key, [label]))
+    if dry_run:
+        for s in to_add[:30]:
+            click.echo(f"    DRY {s.key} — {s.summary[:60]}")
+        if len(to_add) > 30: click.echo(f"    ... et {len(to_add) - 30} autres")
+        if to_add: click.echo("  --no-dry-run pour appliquer\n")
+        return
+    ok = 0; auto = False
+    for s in to_add:
+        if not auto:
+            click.echo(f"  {s.key}: + {label} — {s.summary[:60]}")
+            r = _confirm_one(f"Ajouter '{label}' à {s.key} ?")
+            if r == "q": break
+            if r == "n": continue
+            if r == "a": auto = True
+        if j.add_labels(s.key, [label]): ok += 1; click.echo(f"    ✅ {s.key}: + {label}")
     click.echo(f"  ✅ {ok}/{len(to_add)} modifiées\n")
 
 
@@ -295,15 +319,22 @@ def labels_remove(ctx, pattern, filter_status, filter_sprint, filter_label, filt
     matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
                               filter_summary, filter_assignee, filter_points_min, filter_points_max)
     pat = re.compile(pattern)
-    total_rm = 0; affected = 0
+    total_rm = 0; affected = 0; auto = False
     for s in matched:
         to_remove = [l for l in s.labels if pat.search(l)]
         if not to_remove: continue
-        affected += 1; total_rm += len(to_remove)
         if dry_run:
+            affected += 1; total_rm += len(to_remove)
             click.echo(f"    DRY {s.key}: ✗ {to_remove}")
         else:
+            if not auto:
+                click.echo(f"  {s.key}: ✗ {to_remove}")
+                r = _confirm_one(f"Supprimer {to_remove} de {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
             j.remove_labels(s.key, to_remove)
+            affected += 1; total_rm += len(to_remove)
             click.echo(f"    ✅  {s.key}: ✗ {to_remove}")
     click.echo(f"\n  🏷️  remove '{pattern}' — {total_rm} labels sur {affected} stories")
     if dry_run and total_rm > 0:
@@ -331,17 +362,24 @@ def labels_replace(ctx, old_pattern, new_label, filter_status, filter_sprint, fi
     matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
                               filter_summary, filter_assignee, filter_points_min, filter_points_max)
     pat = re.compile(old_pattern)
-    count = 0
+    count = 0; auto = False
     for s in matched:
         to_remove = [l for l in s.labels if pat.search(l)]
         if not to_remove: continue
-        count += 1
         if dry_run:
+            count += 1
             click.echo(f"    DRY {s.key}: {to_remove} → {new_label}")
         else:
+            if not auto:
+                click.echo(f"  {s.key}: {to_remove} → {new_label}")
+                r = _confirm_one(f"Remplacer {to_remove} par '{new_label}' sur {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
             j.remove_labels(s.key, to_remove)
             if new_label not in s.labels:
                 j.add_labels(s.key, [new_label])
+            count += 1
             click.echo(f"    ✅  {s.key}: {to_remove} → {new_label}")
     click.echo(f"\n  🏷️  replace '{old_pattern}' → '{new_label}' — {count} stories")
     if dry_run and count > 0:
@@ -368,21 +406,29 @@ def labels_env(ctx, env_name, filter_status, filter_sprint, filter_label, filter
     matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
                               filter_summary, filter_assignee, filter_points_min, filter_points_max)
     new_label = f"env:{env_name.lower()}"
-    changed = 0; skipped = 0
+    changed = 0; skipped = 0; auto = False
     for s in matched:
         old_envs = [l for l in s.labels if l.startswith("env:")]
         if old_envs == [new_label]:
             skipped += 1; continue
-        changed += 1
         if dry_run:
+            changed += 1
             if old_envs:
                 click.echo(f"    DRY {s.key}: {old_envs} → {new_label} — {s.summary[:50]}")
             else:
                 click.echo(f"    DRY {s.key}: + {new_label} — {s.summary[:50]}")
         else:
+            desc = f"{s.key}: {old_envs} → {new_label}" if old_envs else f"{s.key}: + {new_label}"
+            if not auto:
+                click.echo(f"  {desc} — {s.summary[:50]}")
+                r = _confirm_one(f"Appliquer {new_label} sur {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
             if old_envs:
                 j.remove_labels(s.key, old_envs)
             j.add_labels(s.key, [new_label])
+            changed += 1
             click.echo(f"    ✅  {s.key}: {new_label}")
     click.echo(f"\n  🌍 env '{new_label}' — {changed} à modifier ({skipped} déjà ok, {len(stories) - len(matched)} filtrées)")
     if dry_run and changed > 0:
@@ -407,15 +453,22 @@ def labels_clear_env(ctx, filter_status, filter_sprint, filter_label, filter_key
     j = JiraAdapter(cfg); stories = j.fetch_all_stories()
     matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
                               filter_summary, filter_assignee, filter_points_min, filter_points_max)
-    removed = 0
+    removed = 0; auto = False
     for s in matched:
         old_envs = [l for l in s.labels if l.startswith("env:")]
         if not old_envs: continue
-        removed += 1
         if dry_run:
+            removed += 1
             click.echo(f"    DRY {s.key}: ✗ {old_envs} — {s.summary[:50]}")
         else:
+            if not auto:
+                click.echo(f"  {s.key}: ✗ {old_envs} — {s.summary[:50]}")
+                r = _confirm_one(f"Supprimer {old_envs} de {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
             j.remove_labels(s.key, old_envs)
+            removed += 1
             click.echo(f"    ✅  {s.key}: ✗ {old_envs}")
     click.echo(f"\n  🌍 clear-env — {removed} stories avec env: label")
     if dry_run and removed > 0:
@@ -511,15 +564,17 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
         click.echo("  DRY RUN — --no-dry-run pour appliquer\n")
         return
 
-    if not click.confirm(f"\n  Créer {total_tasks} sous-tâches dans Jira ?"):
-        click.echo("  Annulé.\n")
-        return
-
-    created = 0
+    created = 0; auto = False
     for s, ops, missing in to_create:
         for env in missing:
             summary = f"[{env.upper()}] {s.summary}"
             env_labels = [f"env:{env}"] + ops
+            if not auto:
+                click.echo(f"  {s.key} → {summary}")
+                r = _confirm_one(f"Créer sous-tâche [{env.upper()}] pour {s.key} ?")
+                if r == "q": click.echo(f"\n  🌍 {created}/{total_tasks} sous-tâches créées\n"); return
+                if r == "n": continue
+                if r == "a": auto = True
             key = j.create_subtask(s.key, summary, labels=env_labels)
             if key:
                 created += 1
@@ -605,6 +660,18 @@ def labels_list(ctx, filter_status, filter_sprint, filter_label, filter_key,
             if len(label_map[l]) > 10:
                 click.echo(f"      ... et {len(label_map[l]) - 10} autres")
     click.echo()
+
+
+def _confirm_one(msg: str) -> str:
+    """Prompt for one action: [y]es / [n]o / [e]dit / [a]ll / [q]uit.
+
+    Returns 'y', 'n', 'a', 'q', or edited text (for 'e').
+    """
+    while True:
+        r = click.prompt(f"  {msg} [y/n/a/q]", default="y").strip().lower()
+        if r in ("y", "n", "a", "q"):
+            return r
+        click.echo("    → y=oui, n=non, a=tout appliquer, q=quitter")
 
 
 def _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,

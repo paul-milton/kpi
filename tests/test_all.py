@@ -1394,7 +1394,7 @@ t("tpl_env_missing_display", 'missing_envs' in macros)
 
 # CLI expand-env command (create subtasks per env)
 t("cli_labels_expand_env_cmd", 'expand-env' in cli or 'labels_expand_env' in cli)
-t("cli_expand_env_confirmation", 'click.confirm' in cli)
+t("cli_expand_env_confirmation", '_confirm_one' in cli)
 t("cli_expand_env_create_subtask", 'create_subtask' in cli)
 t("cli_expand_env_summary_prefix", '[env.upper()]' in cli.replace('{', '').replace('}', '') or 'env.upper()' in cli)
 t("cli_expand_env_children_check", 'children_by_parent' in cli)
