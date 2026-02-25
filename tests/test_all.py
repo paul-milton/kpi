@@ -1342,6 +1342,19 @@ with open(os.path.join(BASE, 'templates', '_macros.html')) as f: macros=f.read()
 t("tpl_env_coverage_warnings", 'env_coverage_warnings' in macros)
 t("tpl_env_missing_display", 'missing_envs' in macros)
 
+# CLI expand-env command (create subtasks per env)
+t("cli_labels_expand_env_cmd", 'expand-env' in cli or 'labels_expand_env' in cli)
+t("cli_expand_env_confirmation", 'click.confirm' in cli)
+t("cli_expand_env_create_subtask", 'create_subtask' in cli)
+t("cli_expand_env_summary_prefix", '[env.upper()]' in cli.replace('{', '').replace('}', '') or 'env.upper()' in cli)
+t("cli_expand_env_children_check", 'children_by_parent' in cli)
+
+# JiraAdapter create_subtask method
+with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja_code=f.read()
+t("jira_create_subtask_method", 'def create_subtask' in ja_code)
+t("jira_create_subtask_parent", '"parent"' in ja_code and 'parent_key' in ja_code)
+t("jira_create_subtask_labels", 'labels' in ja_code)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

@@ -254,6 +254,32 @@ class JiraAdapter:
         except Exception as e:
             logger.error("remove_labels_failed", key=key, err=str(e)[:80]); return False
 
+    def create_subtask(self, parent_key: str, summary: str, labels: list[str] | None = None,
+                       story_points: int | None = None) -> str | None:
+        """Create a subtask linked to parent_key. Returns new issue key or None."""
+        task_type = self._discovered_task_types[0] if hasattr(self, '_discovered_task_types') and self._discovered_task_types else self._task_types[0]
+        fields: dict[str, Any] = {
+            "project": {"key": self._project},
+            "parent": {"key": parent_key},
+            "summary": summary,
+            "issuetype": {"name": task_type},
+        }
+        if labels:
+            fields["labels"] = labels
+        if story_points is not None:
+            fields[self._sp_field] = story_points
+        try:
+            resp = self._client.create_issue(fields=fields)
+            key = resp.get("key", "") if isinstance(resp, dict) else ""
+            if key:
+                logger.info("subtask_created", parent=parent_key, key=key, summary=summary[:60])
+                return key
+            logger.error("subtask_no_key", parent=parent_key, resp=str(resp)[:120])
+            return None
+        except Exception as e:
+            logger.error("subtask_failed", parent=parent_key, err=str(e)[:120])
+            return None
+
     def fetch_sprints(self) -> list[dict]:
         """Fetch sprints from the Jira board for this project.
 

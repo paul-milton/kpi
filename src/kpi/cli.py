@@ -416,6 +416,99 @@ def labels_clear_env(ctx, filter_status, filter_sprint, filter_label, filter_key
         click.echo("  --no-dry-run pour appliquer\n")
 
 
+@labels.command("expand-env")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                      filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Create subtasks per environment for ops/infra stories.
+
+    Detects stories with ops labels (ops, devops, deploiement, infrastructure,
+    observabilite, logging, spans, metriques) and creates a Jira subtask per
+    missing environment (dev, recette, preprod, prod). Shows source story
+    details and asks for confirmation before creating.
+    """
+    from kpi.domain.models import OPS_LABELS, ENV_NAMES
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    # Build parent→children map for existing subtasks
+    children_by_parent: dict[str, list[JiraStory]] = {}
+    for s in stories:
+        if s.parent_key:
+            children_by_parent.setdefault(s.parent_key, []).append(s)
+
+    to_create: list[tuple[JiraStory, list[str], list[str]]] = []  # (story, ops_labels, missing_envs)
+    for s in matched:
+        ops = [l for l in s.labels if l in OPS_LABELS]
+        if not ops:
+            continue
+        # Check existing env: labels on story AND its subtasks
+        existing_envs = set()
+        for l in s.labels:
+            if l.startswith("env:"):
+                existing_envs.add(l.split(":", 1)[1])
+        for child in children_by_parent.get(s.key, []):
+            for l in child.labels:
+                if l.startswith("env:"):
+                    existing_envs.add(l.split(":", 1)[1])
+            # Also check if subtask summary contains env name
+            for env in ENV_NAMES:
+                if f"[{env}]" in child.summary.lower() or f"({env})" in child.summary.lower():
+                    existing_envs.add(env)
+        missing = [e for e in ENV_NAMES if e not in existing_envs]
+        if missing:
+            to_create.append((s, ops, missing))
+
+    if not to_create:
+        click.echo("\n  ✅ Toutes les stories ops/infra ont des tâches par env.")
+        return
+
+    click.echo(f"\n  🌍 expand-env — {len(to_create)} stories ops/infra à dupliquer par env\n")
+    total_tasks = 0
+    for s, ops, missing in to_create:
+        click.echo(f"  {'─'*60}")
+        click.echo(f"  📋 {s.key} — {s.summary}")
+        click.echo(f"     status: {s.status}  |  points: {s.story_points}  |  assigné: {s.assignee or '—'}")
+        click.echo(f"     labels ops: {ops}")
+        click.echo(f"     sprint: {s.sprint or '—'}")
+        click.echo(f"     → tâches à créer: {', '.join(missing)}")
+        total_tasks += len(missing)
+
+    click.echo(f"\n  {'─'*60}")
+    click.echo(f"  Total: {total_tasks} sous-tâches à créer pour {len(to_create)} stories")
+
+    if dry_run:
+        click.echo("  DRY RUN — --no-dry-run pour appliquer\n")
+        return
+
+    if not click.confirm(f"\n  Créer {total_tasks} sous-tâches dans Jira ?"):
+        click.echo("  Annulé.\n")
+        return
+
+    created = 0
+    for s, ops, missing in to_create:
+        for env in missing:
+            summary = f"[{env.upper()}] {s.summary}"
+            env_labels = [f"env:{env}"] + ops
+            key = j.create_subtask(s.key, summary, labels=env_labels)
+            if key:
+                created += 1
+                click.echo(f"    ✅ {key} — {summary}")
+            else:
+                click.echo(f"    ❌ échec — {summary}")
+    click.echo(f"\n  🌍 {created}/{total_tasks} sous-tâches créées\n")
+
+
 @labels.command("check-env")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
