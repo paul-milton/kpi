@@ -653,6 +653,8 @@ def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
     known = {n.label for n in flatten_all(dims)}
     rules = sorted(LABEL_DERIVE_RULES, key=lambda r: -len(r["source"]))
 
+    from kpi.domain.models import OPS_LABELS, ENV_NAMES
+
     actions: list[dict] = []  # {story, remove: [], add: []}
     for s in matched:
         sl = set(s.labels)
@@ -674,6 +676,13 @@ def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
                     if t not in future_labels and t not in add:
                         add.append(t)
                         future_labels.add(t)
+        # Env labels for ops/infra stories missing env coverage
+        if future_labels & OPS_LABELS:
+            existing_envs = {l.split(":", 1)[1] for l in future_labels if l.startswith("env:")}
+            for env in ENV_NAMES:
+                env_label = f"env:{env}"
+                if env not in existing_envs and env_label not in add:
+                    add.append(env_label)
         if remove or add:
             actions.append({"story": s, "remove": remove, "add": add})
 
