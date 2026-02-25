@@ -1399,8 +1399,10 @@ t("cli_expand_env_create_subtask", 'create_subtask' in cli)
 t("cli_expand_env_summary_prefix", '[env.upper()]' in cli.replace('{', '').replace('}', '') or 'env.upper()' in cli)
 t("cli_expand_env_children_check", 'children_by_parent' in cli)
 t("cli_expand_env_default_status", 'backlog|specification|todo' in cli)
-t("cli_expand_env_default_labels", 'ops|devops|infrastructure' in cli)
+t("cli_expand_env_default_labels", 'ops|devops|infrastructure|observabilite' in cli)
 t("cli_expand_env_all_statuses", '--all-statuses' in cli)
+t("cli_expand_env_exclude_label", '--exclude-label' in cli)
+t("cli_expand_env_default_exclude", 'backend|frontend|developpement|test' in cli)
 
 # JiraAdapter create_subtask method
 with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja_code=f.read()

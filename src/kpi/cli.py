@@ -431,28 +431,36 @@ def labels_clear_env(ctx, filter_status, filter_sprint, filter_label, filter_key
 @click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
 @click.option("--filter-points-min", type=int, default=None, help="Min story points")
 @click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--exclude-label", "-x", multiple=True, help="Exclude stories with these labels (regex). Default: backend|frontend|developpement|test")
 @click.option("--all-statuses", is_flag=True, default=False, help="Include all statuses (override default open-only filter)")
 @click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
 @click.pass_context
 def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_key,
                       filter_summary, filter_assignee, filter_points_min, filter_points_max,
-                      all_statuses, dry_run):
+                      exclude_label, all_statuses, dry_run):
     """Create subtasks per environment for ops/infra stories.
 
     By default, only targets stories that are not yet started (backlog,
-    specification, todo) and have ops/devops/infrastructure labels.
+    specification, todo) and have ops/devops/infrastructure/observabilite labels.
+    Excludes stories with backend/frontend/developpement/test labels.
     Use --all-statuses to include in-progress stories.
     """
     from kpi.domain.models import OPS_LABELS, ENV_NAMES
     cfg = ctx.obj["cfg"]
-    # Apply defaults: open statuses + ops/devops/infrastructure labels
+    # Apply defaults: open statuses + ops/devops/infrastructure/observabilite labels
     if not filter_status and not all_statuses:
         filter_status = ("backlog|specification|todo",)
     if not filter_label:
-        filter_label = ("ops|devops|infrastructure",)
+        filter_label = ("ops|devops|infrastructure|observabilite",)
+    if not exclude_label:
+        exclude_label = ("backend|frontend|developpement|test",)
     j = JiraAdapter(cfg); stories = j.fetch_all_stories()
     matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
                               filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    # Exclude stories matching exclude-label patterns
+    for pat in exclude_label:
+        rx = re.compile(pat, re.I)
+        matched = [s for s in matched if not any(rx.search(l) for l in s.labels)]
     # Build parent→children map for existing subtasks
     children_by_parent: dict[str, list[JiraStory]] = {}
     for s in stories:
