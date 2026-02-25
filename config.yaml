@@ -7,7 +7,7 @@ jira:
   # Issue type names (auto-discovered from Jira API, fallback values below)
   story_types: ["Story", "User Story", "Récit"]
   task_types: ["Task", "Sub-task", "Subtask", "Sous-tâche", "Tâche"]
-  notify_users: false
+  notify_users: true
   legacy_label_prefixes:
     - "fonctionnalites:"
     - "design:"
