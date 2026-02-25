@@ -339,6 +339,7 @@ class JiraAdapter:
             for sp in sprints_raw:
                 num = _sprint_number(sp.get("name", ""))
                 result.append({
+                    "id": int(sp.get("id", 0)),
                     "name": sp.get("name", ""),
                     "number": num,
                     "state": sp.get("state", "future"),
@@ -422,6 +423,7 @@ class JiraAdapter:
             story_points=safe_int(f.get(self._sp_field)),
             labels=f.get("labels", []),
             sprint=_sprint_name(f.get("sprint")),
+            sprint_id=_sprint_id(f.get("sprint")),
             assignee=_assignee(f.get("assignee")),
             created_date=created[:10] if created else None,
             issue_type=IssueType.TASK if is_task else IssueType.STORY,
@@ -467,6 +469,14 @@ def _sprint_name(field: Any) -> str | None:
         last = field[-1]
         return last.get("name") if isinstance(last, dict) else str(last)
     return None
+
+def _sprint_id(field: Any) -> int:
+    """Extract Jira sprint ID from sprint field."""
+    if isinstance(field, dict): return int(field.get("id", 0))
+    if isinstance(field, list) and field:
+        last = field[-1]
+        return int(last.get("id", 0)) if isinstance(last, dict) else 0
+    return 0
 
 def _assignee(field: Any) -> str | None:
     return field.get("displayName") if isinstance(field, dict) else None

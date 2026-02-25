@@ -11,6 +11,7 @@ Rules:
 """
 from __future__ import annotations
 from datetime import date, datetime
+import re
 from typing import Any
 import structlog
 from kpi.domain.dimensions import parse_dimensions
@@ -51,6 +52,14 @@ def _apply_jitter(ratio: float, label: str) -> float:
     h = sum(ord(c) for c in label) % 5
     jitter = (h - 2) / 100  # -0.02 to +0.02
     return max(0.0, min(ratio * (1 + jitter), 0.99))
+
+
+def _sprint_num(name: str | None) -> int:
+    """Extract sprint number from any sprint name format (e.g. 'REFE Sprint 5' -> 5)."""
+    if not name:
+        return 0
+    m = re.search(r"(\d+)", name)
+    return int(m.group(1)) if m else 0
 
 
 def filter_abandoned(stories: list[JiraStory]) -> list[JiraStory]:
@@ -149,8 +158,7 @@ class KPICalculator:
 
         # Score_Global: weighted average of top-level tag scores (Story 1-3)
         # "À date": sprint-weighted scores for current/past sprints only
-        past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
-        date_stories = [s for s in live if s.sprint in past_sprint_names]
+        date_stories = self._date_stories(live, timeline)
         date_total_pts = sum(s.story_points for s in date_stories)
         date_done_pts = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
@@ -595,6 +603,36 @@ class KPICalculator:
                     ops_labels=ops, existing_envs=existing, missing_envs=missing,
                 ))
         return warnings
+
+    def _date_stories(self, stories: list[JiraStory], timeline: list) -> list[JiraStory]:
+        """Filter stories planned up to current sprint.
+
+        Strategy controlled by config project.sprint_match:
+        - "number" (default): match by sprint number extracted via regex
+        - "id": match by Jira sprint ID
+        Auto-fallback from "id" to "number" if no matches found.
+        """
+        past_current = [s for s in timeline if s.is_past or s.is_current]
+        if not past_current:
+            return []
+
+        mode = self._pcfg.get("sprint_match", "number")
+
+        if mode == "id":
+            past_ids = {s.jira_id for s in past_current if s.jira_id > 0}
+            if past_ids:
+                result = [s for s in stories if s.sprint_id in past_ids]
+                if result:
+                    logger.debug("date_stories_by_id", count=len(result), ids=len(past_ids))
+                    return result
+            # Fallback to number if id mode yields nothing
+            logger.debug("date_stories_id_fallback_to_number")
+
+        # "number" mode (default + fallback)
+        past_nums = {s.number for s in past_current if s.number > 0}
+        result = [s for s in stories if _sprint_num(s.sprint) in past_nums]
+        logger.debug("date_stories_by_number", count=len(result), nums=len(past_nums))
+        return result
 
     def _score_global(self, tag_scores: list[TagScore], *,
                        time_progress: float | None = None,

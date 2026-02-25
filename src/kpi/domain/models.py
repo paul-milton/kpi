@@ -47,6 +47,7 @@ class JiraStory(BaseModel):
     story_points: int = 0
     labels: list[str] = Field(default_factory=list)
     sprint: str | None = None
+    sprint_id: int = 0
     assignee: str | None = None
     created_date: str | None = None
     issue_type: IssueType = IssueType.STORY
@@ -153,6 +154,7 @@ class SprintInfo(BaseModel):
     is_current: bool = False
     is_past: bool = False
     current_week: int = 0
+    jira_id: int = 0
 
 
 class SprintVelocity(BaseModel):

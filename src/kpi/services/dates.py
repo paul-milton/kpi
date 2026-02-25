@@ -27,7 +27,8 @@ def build_sprint_calendar(cfg: dict[str, Any], jira_sprints: list[dict] | None =
                 number=sp.get("number", 0), name=sp.get("name", f"Sprint {sp.get('number', 0)}"),
                 start_date=s_start.isoformat(), end_date=s_end.isoformat(),
                 is_current=is_cur, is_past=today > s_end,
-                current_week=min((today - s_start).days // 7 + 1, dur_weeks) if is_cur else 0))
+                current_week=min((today - s_start).days // 7 + 1, dur_weeks) if is_cur else 0,
+                jira_id=int(sp.get("id", 0)) if sp.get("id") else 0))
         if sprints:
             return sprints
 

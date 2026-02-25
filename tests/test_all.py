@@ -833,7 +833,7 @@ t("sg_date_vs_project_filtering", sg_mixed_report.score_global_date >= sg_mixed_
 with open(os.path.join(BASE, 'services', 'calculator.py')) as f: cc3=f.read()
 t("calc_score_global_method", '_score_global' in cc3)
 t("calc_score_global_text", 'def score_global_text' in cc3)
-t("calc_date_filtering", 'past_sprint_names' in cc3)
+t("calc_date_filtering", '_date_stories' in cc3)
 t("calc_smoothing", '_score_global(tag_scores)' in cc3)
 
 # Test: soft dampening — score_date < 1.0 when project is mid-way
@@ -1540,6 +1540,96 @@ with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja2=f.read()
 t("jira_notify_flag", '_notify' in ja2 and 'notify_users' in ja2)
 t("jira_notify_in_api", 'notifyUsers' in ja2)
 t("jira_update_issue_method", 'def _update_issue' in ja2)
+
+# ═══════════════════════════════════════════════════════
+# FIX SCORE DATE SPRINT MATCH: Story 2-19
+# ═══════════════════════════════════════════════════════
+from kpi.services.calculator import _sprint_num
+
+# _sprint_num extracts number from various formats
+t("sprint_num_simple", _sprint_num("Sprint 5") == 5)
+t("sprint_num_prefix", _sprint_num("REFE Sprint 5") == 5)
+t("sprint_num_dash", _sprint_num("Mon Projet - Sprint 12") == 12)
+t("sprint_num_none", _sprint_num(None) == 0)
+t("sprint_num_empty", _sprint_num("") == 0)
+t("sprint_num_no_digit", _sprint_num("Backlog") == 0)
+
+# JiraStory has sprint_id field
+t("model_sprint_id", 'sprint_id' in JiraStory.model_fields)
+s_with_sid = JiraStory(key="T1", summary="t", sprint_id=42)
+t("model_sprint_id_value", s_with_sid.sprint_id == 42)
+t("model_sprint_id_default", JiraStory(key="T2", summary="t").sprint_id == 0)
+
+# SprintInfo has jira_id field
+from kpi.domain.models import SprintInfo
+t("model_sprint_info_jira_id", 'jira_id' in SprintInfo.model_fields)
+
+# _date_stories method: number mode (default)
+from kpi.domain.models import SprintInfo
+_ds_cfg = {
+    "dimensions": [{"label": "fonctionnel", "display": "F", "keywords": ["f"]}],
+    "domain_weight": {"fonctionnel": 1.0},
+    "kpi": {"weather": {"sunny_threshold": 0.8, "partly_cloudy_threshold": 0.6,
+                         "cloudy_threshold": 0.4, "rainy_threshold": 0.2}},
+    "project": {"start_date": "2025-10-01", "end_date": "2026-09-30", "sprint_duration_weeks": 3},
+    "jira": {"url": ""},
+}
+_ds_calc = KPICalculator(_ds_cfg)
+_ds_timeline = [
+    SprintInfo(number=1, name="Sprint 1", is_past=True),
+    SprintInfo(number=2, name="Sprint 2", is_past=True),
+    SprintInfo(number=3, name="Sprint 3", is_current=True),
+    SprintInfo(number=4, name="Sprint 4"),
+]
+_ds_stories = [
+    JiraStory(key="D1", summary="s1", sprint="REFE Sprint 1", story_points=5, status=StoryStatus.DONE, labels=["fonctionnel"]),
+    JiraStory(key="D2", summary="s2", sprint="REFE Sprint 3", story_points=8, status=StoryStatus.IN_PROGRESS, labels=["fonctionnel"]),
+    JiraStory(key="D3", summary="s3", sprint="REFE Sprint 4", story_points=10, labels=["fonctionnel"]),
+    JiraStory(key="D4", summary="s4", story_points=3, labels=["fonctionnel"]),  # no sprint
+]
+_ds_result = _ds_calc._date_stories(_ds_stories, _ds_timeline)
+t("date_stories_number_mode_count", len(_ds_result) == 2, f"got {len(_ds_result)}")
+t("date_stories_number_mode_keys", {s.key for s in _ds_result} == {"D1", "D2"})
+t("date_stories_excludes_future", all(s.key != "D3" for s in _ds_result))
+t("date_stories_excludes_no_sprint", all(s.key != "D4" for s in _ds_result))
+
+# _date_stories: id mode
+_ds_cfg_id = dict(_ds_cfg)
+_ds_cfg_id["project"] = dict(_ds_cfg["project"], sprint_match="id")
+_ds_calc_id = KPICalculator(_ds_cfg_id)
+_ds_timeline_id = [
+    SprintInfo(number=1, name="Sprint 1", is_past=True, jira_id=101),
+    SprintInfo(number=2, name="Sprint 2", is_past=True, jira_id=102),
+    SprintInfo(number=3, name="Sprint 3", is_current=True, jira_id=103),
+]
+_ds_stories_id = [
+    JiraStory(key="I1", summary="s", sprint="X Sprint 1", sprint_id=101, story_points=5, status=StoryStatus.DONE, labels=["fonctionnel"]),
+    JiraStory(key="I2", summary="s", sprint="X Sprint 3", sprint_id=103, story_points=8, labels=["fonctionnel"]),
+    JiraStory(key="I3", summary="s", sprint="X Sprint 9", sprint_id=999, story_points=3, labels=["fonctionnel"]),
+]
+_ds_result_id = _ds_calc_id._date_stories(_ds_stories_id, _ds_timeline_id)
+t("date_stories_id_mode_count", len(_ds_result_id) == 2, f"got {len(_ds_result_id)}")
+t("date_stories_id_mode_keys", {s.key for s in _ds_result_id} == {"I1", "I2"})
+
+# _date_stories: id mode fallback to number when no jira_ids
+_ds_timeline_noid = [
+    SprintInfo(number=1, name="Sprint 1", is_past=True, jira_id=0),
+    SprintInfo(number=3, name="Sprint 3", is_current=True, jira_id=0),
+]
+_ds_result_fb = _ds_calc_id._date_stories(_ds_stories, _ds_timeline_noid)
+t("date_stories_id_fallback", len(_ds_result_fb) == 2, f"got {len(_ds_result_fb)}")
+
+# Integration: score_global_date > 0 with mismatched sprint names
+_ds_report = _ds_calc.compute(_ds_stories, [])
+t("score_date_nonzero_mismatch", _ds_report.score_global_date > 0, f"got {_ds_report.score_global_date}")
+
+# jira_adapter: _sprint_id helper + sprint_id in _map
+with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja4=f.read()
+t("jira_sprint_id_helper", 'def _sprint_id' in ja4)
+t("jira_sprint_id_in_map", 'sprint_id=_sprint_id' in ja4)
+
+# fetch_sprints includes id field
+t("jira_fetch_sprints_id", '"id"' in ja4 and 'sp.get("id"' in ja4)
 
 # ═══════════════════════════════════════════════════════
 # STORY COUNT COLUMN: Story 2-18
