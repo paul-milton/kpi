@@ -597,24 +597,30 @@ class KPICalculator:
     def _score_global(self, tag_scores: list[TagScore], *,
                        time_progress: float | None = None,
                        total_project_pts: int | None = None) -> float:
-        """Weighted average of top-level tag scores using domain_weight (AC #1).
+        """Weighted average of tag scores using domain_weight.
+
+        Walks the full tag tree (not just top-level) to find dimensions
+        with a configured weight, since domain_weight keys may refer to
+        any level in the dimension hierarchy.
 
         When time_progress and total_project_pts are provided (mode "à date"),
-        a soft dampening is applied: the raw score is reduced by up to 30%
-        proportional to the remaining project time. This prevents score_date
-        from reaching 100% mid-project while staying realistic (>70% when
-        all sprinted stories are done).
-
-        Formula: score_date = raw_score × (1 - dampening)
-        where dampening = max(0, (1 - time_progress) × 0.3)
+        a soft dampening is applied: score × (1 - (1-time_progress) × 0.3).
         """
         numerator = 0.0
         denominator = 0.0
-        for ts in tag_scores:
-            w = self._dw.get(ts.label, 0.0)
-            if w > 0 and ts.total_points > 0:
-                numerator += ts.score * w
-                denominator += w
+
+        def _walk(nodes: list[TagScore]):
+            nonlocal numerator, denominator
+            for ts in nodes:
+                w = self._dw.get(ts.label, 0.0)
+                if w > 0 and ts.total_points > 0:
+                    numerator += ts.score * w
+                    denominator += w
+                elif ts.children:
+                    # No weight at this level — look deeper
+                    _walk(ts.children)
+
+        _walk(tag_scores)
         raw = numerator / denominator if denominator > 0 else 0.0
         if time_progress is not None and total_project_pts and time_progress < 1.0:
             dampening = max(0.0, (1.0 - time_progress) * 0.3)
