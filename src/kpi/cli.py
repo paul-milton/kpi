@@ -651,6 +651,87 @@ def labels_suggest_conception(ctx, filter_status, filter_sprint, filter_label, f
     click.echo(f"\n  {ok_count}/{tot} stories modifiees\n")
 
 
+# Rules: when a story has ALL source labels, derive target labels
+LABEL_DERIVE_RULES = [
+    # tests + fonctionnel -> tests-fonctionnels + tests-fonctionnels-automatises
+    {"source": ["tests", "fonctionnel"], "target": ["tests-fonctionnels", "tests-fonctionnels-automatises"]},
+    # tests + technique -> tests-unitaires + tests-integration
+    {"source": ["tests", "technique"], "target": ["tests-unitaires", "tests-integration"]},
+    # tests + backend -> tests-unitaires + tests-integration
+    {"source": ["tests", "backend"], "target": ["tests-unitaires", "tests-integration"]},
+    # tests + auto -> tests-auto
+    {"source": ["tests", "auto"], "target": ["tests-auto"]},
+    # tests + performance -> tests-performance
+    {"source": ["tests", "performance"], "target": ["tests-performance"]},
+    # conception + technique -> conception-technique
+    {"source": ["conception", "technique"], "target": ["conception-technique"]},
+    # conception + fonctionnel -> conception-fonctionnelle
+    {"source": ["conception", "fonctionnel"], "target": ["conception-fonctionnelle"]},
+]
+
+
+@labels.command("derive")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_derive(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                  filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Derive compound labels from atomic labels (e.g. tests+fonctionnel -> tests-fonctionnels)."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    # Sort rules: longest source first (most specific match first)
+    rules = sorted(LABEL_DERIVE_RULES, key=lambda r: -len(r["source"]))
+    total_add = 0; affected = 0; auto = False; idx = 0
+    to_apply: list[tuple] = []  # (story, labels_to_add)
+    for s in matched:
+        sl = set(s.labels)
+        new_labels = []
+        for rule in rules:
+            if all(l in sl for l in rule["source"]):
+                for t in rule["target"]:
+                    if t not in sl and t not in new_labels:
+                        new_labels.append(t)
+        if new_labels:
+            to_apply.append((s, new_labels))
+    if not to_apply:
+        click.echo("\n  aucun label compose a deriver.\n")
+        return
+    tot = len(to_apply)
+    click.echo(f"\n  🔗 derive - {sum(len(ls) for _, ls in to_apply)} labels pour {tot} stories\n")
+    if dry_run:
+        for s, new_labels in to_apply[:30]:
+            click.echo(f"    {click.style(s.key, bold=True)} {s.summary[:50]}")
+            click.echo(f"      existants: {s.labels}")
+            click.echo(f"      {click.style('+ ' + ', '.join(new_labels), fg='green')}")
+        if tot > 30:
+            click.echo(f"    ... et {tot - 30} autres")
+        click.echo("\n  DRY RUN - --no-dry-run pour appliquer\n")
+        return
+    ok = 0
+    for s, new_labels in to_apply:
+        idx += 1
+        if not auto:
+            _display_story_action(s.key, s.summary, new_labels, idx, tot, "+")
+            click.echo(f"    existants: {s.labels}")
+            r = _confirm_one(f"Appliquer ?")
+            if r == "q": break
+            if r == "n": continue
+            if r == "a": auto = True
+        if j.add_labels(s.key, new_labels):
+            ok += 1
+            click.echo(f"    {click.style('OK', fg='green')} {s.key}: +{new_labels}")
+    click.echo(f"\n  {ok}/{tot} stories modifiees\n")
+
+
 @labels.command("check-env")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")

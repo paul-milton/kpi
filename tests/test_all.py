@@ -1501,6 +1501,27 @@ t("tpl_project_no_assignee", 'Assigné' not in open(os.path.join(BASE, 'template
 # Template: velocity empty placeholder
 t("tpl_velocity_placeholder", 'Velocite indisponible' in macros)
 
+# Templates: no em-dashes
+for tname in ['kpi_preview.html', 'kpi_date.html', 'kpi_project.html', '_macros.html']:
+    tc = open(os.path.join(BASE, 'templates', tname)).read()
+    t(f"tpl_no_emdash_{tname.split('.')[0]}", '\u2014' not in tc and '\u2013' not in tc, f"em-dash in {tname}")
+
+# CLI: labels derive command
+with open(os.path.join(BASE, 'cli.py')) as f: cli_fresh=f.read()
+t("cli_labels_derive", 'labels_derive' in cli_fresh or '"derive"' in cli_fresh)
+t("cli_derive_rules", 'LABEL_DERIVE_RULES' in cli_fresh)
+t("cli_derive_tests_fonctionnels", 'tests-fonctionnels' in cli_fresh)
+t("cli_derive_conception_technique", 'conception-technique' in cli_fresh)
+t("cli_derive_confirm", '_confirm_one' in cli_fresh)
+
+# Derive rules logic (check via source code, can't import cli.py directly without atlassian)
+t("derive_rule_tests_fonc", '"tests", "fonctionnel"' in cli_fresh and '"tests-fonctionnels"' in cli_fresh)
+t("derive_rule_tests_fonc_auto", '"tests-fonctionnels-automatises"' in cli_fresh)
+t("derive_rule_tests_tech", '"tests", "technique"' in cli_fresh and '"tests-unitaires"' in cli_fresh)
+t("derive_rule_tests_backend", '"tests", "backend"' in cli_fresh and '"tests-integration"' in cli_fresh)
+t("derive_rule_conception_tech", '"conception", "technique"' in cli_fresh and '"conception-technique"' in cli_fresh)
+t("derive_rule_conception_fonc", '"conception", "fonctionnel"' in cli_fresh and '"conception-fonctionnelle"' in cli_fresh)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)
