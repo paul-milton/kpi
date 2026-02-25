@@ -1542,6 +1542,43 @@ t("jira_notify_in_api", 'notifyUsers' in ja2)
 t("jira_update_issue_method", 'def _update_issue' in ja2)
 
 # ═══════════════════════════════════════════════════════
+# AUTOSUGGEST BATCH CLI: Story 2-12
+# ═══════════════════════════════════════════════════════
+# _parse_selection tests
+with open(os.path.join(BASE, 'cli.py')) as f: cli12=f.read()
+t("cli_parse_selection_exists", 'def _parse_selection' in cli12)
+t("cli_batch_mode_default", '_parse_selection' in cli12 and 'sel_text' in cli12)
+t("cli_interactive_flag", '--interactive' in cli12)
+t("cli_dry_run_flag", '--dry-run' in cli12)
+t("cli_summary_table", "'#'" in cli12 or '"#"' in cli12 or 'Clé' in cli12)
+t("cli_batch_all_none_q", "'all'" in cli12 and "'none'" in cli12)
+
+# _parse_selection function logic (source analysis)
+t("cli_parse_all", "'all'" in cli12 and "range(1, max_n + 1)" in cli12)
+t("cli_parse_none", "'none'" in cli12 and "set()" in cli12)
+t("cli_parse_ranges", 'split("-"' in cli12)
+t("cli_parse_comma", 'split(",")' in cli12)
+
+# Integration: _parse_selection importable
+exec_env = {}
+# Extract _parse_selection function from source
+import textwrap
+fn_start = cli12.index('def _parse_selection')
+fn_end = cli12.index('\ndef _confirm_one')
+fn_code = cli12[fn_start:fn_end]
+exec(fn_code, exec_env)
+ps = exec_env['_parse_selection']
+t("parse_sel_all", ps("all", 5) == {1,2,3,4,5})
+t("parse_sel_none", ps("none", 5) == set())
+t("parse_sel_single", ps("3", 10) == {3})
+t("parse_sel_comma", ps("1,3,5", 10) == {1,3,5})
+t("parse_sel_range", ps("2-5", 10) == {2,3,4,5})
+t("parse_sel_mixed", ps("1,3-5,8", 10) == {1,3,4,5,8})
+t("parse_sel_out_of_range", ps("0,11", 10) == set())
+t("parse_sel_star", ps("*", 5) == {1,2,3,4,5})
+t("parse_sel_empty", ps("", 5) == set())
+
+# ═══════════════════════════════════════════════════════
 # FIX SCORE DATE SPRINT MATCH: Story 2-19
 # ═══════════════════════════════════════════════════════
 from kpi.services.calculator import _sprint_num

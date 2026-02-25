@@ -618,10 +618,12 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
 @click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
 @click.option("--filter-points-min", type=int, default=None, help="Min story points")
 @click.option("--filter-points-max", type=int, default=None, help="Max story points")
-@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.option("--dry-run", is_flag=True, default=False, help="Print JSON of changes, don't apply")
+@click.option("--interactive", "-i", is_flag=True, default=False, help="Legacy y/n per-story mode")
 @click.pass_context
 def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
-                   filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+                   filter_summary, filter_assignee, filter_points_min, filter_points_max,
+                   dry_run, interactive):
     """All-in-one: cleanup orphan labels + semantic re-tag + conception + derive compounds."""
     from kpi.domain.dimensions import flatten_all, parse_dimensions
     cfg = ctx.obj["cfg"]
@@ -663,35 +665,73 @@ def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
 
     total_rm = sum(len(a["remove"]) for a in actions)
     total_add = sum(len(a["add"]) for a in actions)
-    click.echo(f"\n  🎯 suggest - {len(actions)} stories, {click.style(f'-{total_rm}', fg='red')} orphelins, {click.style(f'+{total_add}', fg='green')} nouveaux\n")
+    tot = len(actions)
+    click.echo(f"\n  🎯 suggest - {tot} stories, {click.style(f'-{total_rm}', fg='red')} orphelins, {click.style(f'+{total_add}', fg='green')} nouveaux\n")
 
-    if dry_run:
-        for a in actions[:40]:
-            s = a["story"]
-            click.echo(f"  {click.style(s.key, bold=True)} {s.summary[:55]}")
-            if a["remove"]:
-                click.echo(f"    {click.style('- ' + ', '.join(a['remove']), fg='red')}")
-            if a["add"]:
-                click.echo(f"    {click.style('+ ' + ', '.join(a['add']), fg='green')}")
-        if len(actions) > 40:
-            click.echo(f"  ... et {len(actions) - 40} autres")
-        click.echo("\n  DRY RUN - --no-dry-run pour appliquer\n")
-        return
-
-    ok = 0; auto = False; tot = len(actions)
+    # Summary table
+    click.echo(f"  {'#':>3}  {'Clé':<14} {'Résumé':<45} {'Labels':}")
+    click.echo(f"  {'─'*90}")
     for idx, a in enumerate(actions, 1):
         s = a["story"]
-        if not auto:
-            click.echo(f"\n  {'─'*55}")
-            click.echo(f"  [{idx}/{tot}] {click.style(s.key, bold=True)} {s.summary[:55]}")
+        parts = []
+        if a["remove"]:
+            parts.append(click.style("-" + " -".join(a["remove"]), fg="red"))
+        if a["add"]:
+            parts.append(click.style("+" + " +".join(a["add"]), fg="green"))
+        lbl_str = "  ".join(parts)
+        click.echo(f"  {idx:>3}  {click.style(s.key, bold=True):<14} {s.summary[:45]:<45} {lbl_str}")
+    click.echo(f"  {'─'*90}")
+
+    if dry_run:
+        import json as _json
+        result = [{"key": a["story"].key, "remove": a["remove"], "add": a["add"]} for a in actions]
+        click.echo(_json.dumps(result, indent=2, ensure_ascii=False))
+        click.echo(f"\n  DRY RUN - retirez --dry-run pour appliquer\n")
+        return
+
+    if interactive:
+        # Legacy y/n per-story mode
+        ok = 0; auto = False
+        for idx, a in enumerate(actions, 1):
+            s = a["story"]
+            if not auto:
+                click.echo(f"\n  {'─'*55}")
+                click.echo(f"  [{idx}/{tot}] {click.style(s.key, bold=True)} {s.summary[:55]}")
+                if a["remove"]:
+                    click.echo(f"    {click.style('- ' + ', '.join(a['remove']), fg='red')}")
+                if a["add"]:
+                    click.echo(f"    {click.style('+ ' + ', '.join(a['add']), fg='green')}")
+                r = _confirm_one(f"Appliquer ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
+            success = True
             if a["remove"]:
-                click.echo(f"    {click.style('- ' + ', '.join(a['remove']), fg='red')}")
+                success = j.remove_labels(s.key, a["remove"]) and success
             if a["add"]:
-                click.echo(f"    {click.style('+ ' + ', '.join(a['add']), fg='green')}")
-            r = _confirm_one(f"Appliquer ?")
-            if r == "q": break
-            if r == "n": continue
-            if r == "a": auto = True
+                success = j.add_labels(s.key, a["add"]) and success
+            if success:
+                ok += 1
+                click.echo(f"    {click.style('OK', fg='green')} {s.key}")
+        click.echo(f"\n  {ok}/{tot} stories modifiees\n")
+        return
+
+    # Batch selection mode (default)
+    prompt = click.style("  ? ", fg="cyan", bold=True) + "Selection " + click.style("[all / none / 1,3,5-8 / q]", fg="bright_black")
+    sel_text = click.prompt(prompt, default="all", show_default=False).strip()
+    if sel_text.lower() in ("q", "quit"):
+        click.echo("  annule.\n")
+        return
+    selected = _parse_selection(sel_text, tot)
+    if not selected:
+        click.echo("  aucune selection.\n")
+        return
+    click.echo(f"\n  application de {len(selected)}/{tot} suggestions...")
+    ok = 0
+    for idx, a in enumerate(actions, 1):
+        if idx not in selected:
+            continue
+        s = a["story"]
         success = True
         if a["remove"]:
             success = j.remove_labels(s.key, a["remove"]) and success
@@ -700,7 +740,9 @@ def labels_suggest(ctx, filter_status, filter_sprint, filter_label, filter_key,
         if success:
             ok += 1
             click.echo(f"    {click.style('OK', fg='green')} {s.key}")
-    click.echo(f"\n  {ok}/{tot} stories modifiees\n")
+        else:
+            click.echo(f"    {click.style('FAIL', fg='red')} {s.key}")
+    click.echo(f"\n  {ok}/{len(selected)} stories modifiees\n")
 
 
 @labels.command("suggest-conception")
@@ -980,6 +1022,33 @@ def labels_cleanup(ctx, filter_status, filter_sprint, filter_label, filter_key,
     click.echo(f"  {len(known)} labels reconnus dans config dimensions")
     if dry_run and total_rm > 0:
         click.echo("  --no-dry-run pour appliquer\n")
+
+
+def _parse_selection(text: str, max_n: int) -> set[int]:
+    """Parse selection string like 'all', 'none', '1,3,5-8' into set of ints (1-based)."""
+    text = text.strip().lower()
+    if text in ("all", "a", "tout", "*"):
+        return set(range(1, max_n + 1))
+    if text in ("none", "n", "aucun", "0"):
+        return set()
+    result = set()
+    for part in text.split(","):
+        part = part.strip()
+        if "-" in part:
+            bounds = part.split("-", 1)
+            try:
+                lo, hi = int(bounds[0]), int(bounds[1])
+                result.update(range(max(1, lo), min(hi, max_n) + 1))
+            except ValueError:
+                continue
+        else:
+            try:
+                v = int(part)
+                if 1 <= v <= max_n:
+                    result.add(v)
+            except ValueError:
+                continue
+    return result
 
 
 def _confirm_one(msg: str) -> str:
