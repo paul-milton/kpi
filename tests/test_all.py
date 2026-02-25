@@ -1542,6 +1542,19 @@ t("jira_notify_in_api", 'notifyUsers' in ja2)
 t("jira_update_issue_method", 'def _update_issue' in ja2)
 
 # ═══════════════════════════════════════════════════════
+# DEBUG SPRINTS: sprint diagnostics
+# ═══════════════════════════════════════════════════════
+with open(os.path.join(BASE, 'cli.py')) as f: cli_dbg=f.read()
+t("cli_debug_sprints_cmd", 'def debug_sprints' in cli_dbg)
+t("cli_debug_sprints_boards", 'debug_boards' in cli_dbg)
+t("cli_sprints_fallback_msg", 'debug-sprints' in cli_dbg)
+
+with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja3=f.read()
+t("jira_debug_boards", 'def debug_boards' in ja3)
+t("jira_boards_sprint_count", 'sprint_total' in ja3)
+t("jira_boards_debug_log", 'board_found' in ja3)
+
+# ═══════════════════════════════════════════════════════
 # FASTAPI SERVER: Story 2-9 — live server with caching
 # ═══════════════════════════════════════════════════════
 with open(os.path.join(BASE, 'server.py')) as f: server_code=f.read()

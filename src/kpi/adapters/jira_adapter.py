@@ -312,12 +312,15 @@ class JiraAdapter:
             boards = self._client.get(f"rest/agile/1.0/board?projectKeyOrId={self._project}",
                                        advanced_mode=True)
             if boards.status_code != 200:
-                logger.warning("boards_fetch_failed", status=boards.status_code)
+                logger.warning("boards_fetch_failed", status=boards.status_code,
+                              body=boards.text[:200] if hasattr(boards, 'text') else "")
                 return []
             boards_data = boards.json().get("values", [])
             if not boards_data:
                 logger.warning("no_boards_found", project=self._project)
                 return []
+            logger.debug("board_found", board_id=boards_data[0]["id"],
+                        board_name=boards_data[0].get("name", ""))
             board_id = boards_data[0]["id"]
             sprints_raw = []
             start = 0
@@ -348,6 +351,34 @@ class JiraAdapter:
         except Exception as e:
             logger.warning("fetch_sprints_error", err=str(e)[:120])
             return []
+
+    def debug_boards(self) -> list[dict]:
+        """Return boards accessible for this project, with sprint counts."""
+        result = []
+        try:
+            resp = self._client.get(f"rest/agile/1.0/board?projectKeyOrId={self._project}",
+                                     advanced_mode=True)
+            if resp.status_code != 200:
+                logger.warning("debug_boards_failed", status=resp.status_code, body=resp.text[:200])
+                return []
+            for b in resp.json().get("values", []):
+                board = {"id": b["id"], "name": b.get("name", ""), "type": b.get("type", "")}
+                # Count sprints on this board
+                try:
+                    sr = self._client.get(f"rest/agile/1.0/board/{b['id']}/sprint?maxResults=1",
+                                           advanced_mode=True)
+                    if sr.status_code == 200:
+                        board["sprint_total"] = sr.json().get("total", 0)
+                    else:
+                        board["sprint_total"] = -1
+                        board["sprint_error"] = f"HTTP {sr.status_code}"
+                except Exception as e:
+                    board["sprint_total"] = -1
+                    board["sprint_error"] = str(e)[:80]
+                result.append(board)
+        except Exception as e:
+            logger.warning("debug_boards_error", err=str(e)[:120])
+        return result
 
     def debug_statuses(self) -> dict[str, int]:
         """Fetch raw Jira status names and counts."""

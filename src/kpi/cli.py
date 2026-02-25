@@ -45,6 +45,9 @@ def _fetch(cfg):
     try: sprints = j.fetch_sprints()
     except Exception as e:
         logger.warning("sprints_failed", err=str(e)[:120]); sprints = []
+    if not sprints:
+        click.echo("  ⚠️  Sprints indisponibles (pas de board ou erreur API). Fallback: dates config.")
+        click.echo("     Lancez 'kpi debug-sprints' pour diagnostiquer.")
     return stories, vels, t.find_untagged(stories), sprints
 
 def _report(cfg, stories, vels, untag, sprints=None):
@@ -1096,6 +1099,37 @@ def debug_issuetypes(ctx):
         click.echo(f"  {marker} {t['name']:30s} {'oui' if t['subtask'] else 'non':8s} {t['id']:6s}")
     click.echo(f"\n  découverts stories: {classified['stories']}")
     click.echo(f"  découverts tasks:   {classified['tasks']}")
+    click.echo()
+
+
+@main.command("debug-sprints")
+@click.pass_context
+def debug_sprints(ctx):
+    """Show Jira boards and sprints for diagnostics."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg)
+    boards = j.debug_boards()
+    click.echo(f"\n{'='*60}\n  boards Jira pour {j._project} - {len(boards)} trouvés\n{'='*60}")
+    if not boards:
+        click.echo("  ⚠️  Aucun board trouvé. Le projet n'a pas de board Scrum/Kanban.")
+        click.echo("     Verifiez dans Jira: Projet > Board > Settings")
+        click.echo()
+        return
+    for b in boards:
+        err = b.get("sprint_error", "")
+        sprint_info = f"{b['sprint_total']} sprints" if b["sprint_total"] >= 0 else f"erreur: {err}"
+        click.echo(f"  📋 id={b['id']} {b['name']:30s} type={b['type']:10s} {sprint_info}")
+    # Show actual sprints
+    sprints = j.fetch_sprints()
+    click.echo(f"\n  {'─'*50}")
+    click.echo(f"  sprints recuperes: {len(sprints)}")
+    click.echo(f"  {'─'*50}")
+    for sp in sprints:
+        state_icon = {"active": "🟢", "closed": "✅", "future": "⏳"}.get(sp["state"], "❓")
+        dates = f"{sp['start_date']} → {sp['end_date']}" if sp["start_date"] else "pas de dates"
+        click.echo(f"  {state_icon} Sprint {sp['number']:2d} {sp['name']:25s} {sp['state']:8s} {dates}")
+    if not sprints:
+        click.echo("  ⚠️  Aucun sprint. Le board n'a peut-etre pas de sprints configures.")
     click.echo()
 
 
