@@ -973,10 +973,13 @@ t("tpl_velocity_stories", 'completed_stories' in _shared_content)
 t("tpl_velocity_dates", 'start_date' in _shared_content)
 t("tpl_velocity_median", 'med_pw' in _shared_content or 'Méd' in _shared_content)
 t("tpl_velocity_variation", 'v-pos' in _shared_content and 'v-neg' in _shared_content)
-# All 3 templates use the macro
+# All 3 templates use the macro AND import it
 t("tpl_preview_velocity_macro", 'velocity_table()' in tpl)
 t("tpl_date_velocity_macro", 'velocity_table()' in tpl_date)
 t("tpl_project_velocity_macro", 'velocity_table()' in tpl_proj)
+t("tpl_preview_velocity_import", 'velocity_table' in tpl and 'import' in tpl.split('velocity_table')[0].split('\n')[-1])
+t("tpl_date_velocity_import", 'velocity_table' in tpl_date and 'import' in tpl_date.split('velocity_table')[0].split('\n')[-1])
+t("tpl_project_velocity_import", 'velocity_table' in tpl_proj and 'import' in tpl_proj.split('velocity_table')[0].split('\n')[-1])
 # Model has sprint dates
 from kpi.domain.models import SprintVelocity as SV
 t("model_velocity_dates", 'start_date' in SV.model_fields and 'end_date' in SV.model_fields)
@@ -1395,6 +1398,9 @@ t("cli_expand_env_confirmation", 'click.confirm' in cli)
 t("cli_expand_env_create_subtask", 'create_subtask' in cli)
 t("cli_expand_env_summary_prefix", '[env.upper()]' in cli.replace('{', '').replace('}', '') or 'env.upper()' in cli)
 t("cli_expand_env_children_check", 'children_by_parent' in cli)
+t("cli_expand_env_default_status", 'backlog|specification|todo' in cli)
+t("cli_expand_env_default_labels", 'ops|devops|infrastructure' in cli)
+t("cli_expand_env_all_statuses", '--all-statuses' in cli)
 
 # JiraAdapter create_subtask method
 with open(os.path.join(BASE, 'adapters', 'jira_adapter.py')) as f: ja_code=f.read()
