@@ -150,7 +150,7 @@ class KPICalculator:
         # Score_Global: weighted average of top-level tag scores (Story 1-3)
         # "À date": sprint-weighted scores for current/past sprints only
         past_sprint_names = {s.name for s in timeline if s.is_past or s.is_current}
-        date_stories = [s for s in live if s.sprint in past_sprint_names or s.status in COMPLETED_STATUSES]
+        date_stories = [s for s in live if s.sprint in past_sprint_names]
         date_total_pts = sum(s.story_points for s in date_stories)
         date_done_pts = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
