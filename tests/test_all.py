@@ -1480,6 +1480,27 @@ t("cli_suggest_conception_confirm", '_confirm_one' in cli)
 t("tpl_meteo_score_projet", 'score projet' in macros)
 t("tpl_meteo_no_avancement_label", 'avancement {{ delta' not in macros)
 
+# ═══════════════════════════════════════════════════════
+# CLI: labels cleanup command
+# ═══════════════════════════════════════════════════════
+t("cli_labels_cleanup", 'labels_cleanup' in cli or '"cleanup"' in cli)
+t("cli_cleanup_flatten", 'flatten_all' in cli)
+t("cli_cleanup_known_labels", 'known' in cli and 'label' in cli)
+t("cli_cleanup_env_preserved", 'env:' in cli)
+
+# CLI: confirm UI readability
+t("cli_display_story_action", '_display_story_action' in cli)
+t("cli_confirm_style", 'click.style' in cli)
+t("cli_confirm_counter", 'idx' in cli and 'tot' in cli)
+
+# Templates: no Assignee column in blocked stories
+t("tpl_preview_no_assignee", 'Assigné' not in open(os.path.join(BASE, 'templates', 'kpi_preview.html')).read())
+t("tpl_date_no_assignee", 'Assigné' not in open(os.path.join(BASE, 'templates', 'kpi_date.html')).read())
+t("tpl_project_no_assignee", 'Assigné' not in open(os.path.join(BASE, 'templates', 'kpi_project.html')).read())
+
+# Template: velocity empty placeholder
+t("tpl_velocity_placeholder", 'Velocite indisponible' in macros)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

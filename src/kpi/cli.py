@@ -184,15 +184,19 @@ def tag(ctx, dry_run):
     if dry_run:
         for k, ls in list(by.items())[:20]: click.echo(f"    {k} → {ls}")
         click.echo("  DRY RUN — --no-dry-run\n"); return
-    ok = 0; auto = False
+    ok = 0; auto = False; idx = 0; tot = len(by)
+    smap = {s.key: s for s in stories}
     for k, ls in by.items():
+        idx += 1
         if not auto:
-            r = _confirm_one(f"{k} + {ls} ?")
+            summary = smap[k].summary if k in smap else ""
+            _display_story_action(k, summary, ls, idx, tot, "+")
+            r = _confirm_one(f"Appliquer ?")
             if r == "q": break
             if r == "n": continue
             if r == "a": auto = True
-        if j.add_labels(k, ls): ok += 1; click.echo(f"    ✅ {k}: + {ls}")
-    click.echo(f"  ✅ {ok}/{len(by)}\n")
+        if j.add_labels(k, ls): ok += 1; click.echo(f"    {click.style('OK', fg='green')} {k}: +{ls}")
+    click.echo(f"\n  {ok}/{tot} stories modifiees\n")
 
 
 @main.command("migrate-labels")
@@ -289,16 +293,17 @@ def labels_add(ctx, label, filter_status, filter_sprint, filter_label, filter_ke
         if len(to_add) > 30: click.echo(f"    ... et {len(to_add) - 30} autres")
         if to_add: click.echo("  --no-dry-run pour appliquer\n")
         return
-    ok = 0; auto = False
+    ok = 0; auto = False; idx = 0; tot = len(to_add)
     for s in to_add:
+        idx += 1
         if not auto:
-            click.echo(f"  {s.key}: + {label} — {s.summary[:60]}")
-            r = _confirm_one(f"Ajouter '{label}' à {s.key} ?")
+            _display_story_action(s.key, s.summary, [label], idx, tot, "+")
+            r = _confirm_one(f"Appliquer ?")
             if r == "q": break
             if r == "n": continue
             if r == "a": auto = True
-        if j.add_labels(s.key, [label]): ok += 1; click.echo(f"    ✅ {s.key}: + {label}")
-    click.echo(f"  ✅ {ok}/{len(to_add)} modifiées\n")
+        if j.add_labels(s.key, [label]): ok += 1; click.echo(f"    {click.style('OK', fg='green')} {s.key}: +{label}")
+    click.echo(f"\n  {ok}/{tot} modifiees\n")
 
 
 @labels.command("remove")
@@ -628,22 +633,22 @@ def labels_suggest_conception(ctx, filter_status, filter_sprint, filter_label, f
             click.echo(f"    ... et {len(by_story) - 30} autres")
         click.echo("\n  DRY RUN — --no-dry-run pour appliquer\n")
         return
-    ok_count = 0; auto = False
+    ok_count = 0; auto = False; idx = 0; tot = len(by_story)
     for key, sugs in by_story.items():
+        idx += 1
         new_labels = [s.label for s in sugs]
-        labels_str = ", ".join(f"{s.label}({s.confidence:.0%})" for s in sugs)
+        best_conf = max(s.confidence for s in sugs)
         if not auto:
-            click.echo(f"  {key}: + {labels_str}")
-            click.echo(f"    {sugs[0].story_summary[:70]}")
+            _display_story_action(key, sugs[0].story_summary, new_labels, idx, tot, "+", best_conf)
             click.echo(f"    raison: {sugs[0].reason}")
-            r = _confirm_one(f"Ajouter {new_labels} à {key} ?")
+            r = _confirm_one(f"Appliquer ?")
             if r == "q": break
             if r == "n": continue
             if r == "a": auto = True
         if j.add_labels(key, new_labels):
             ok_count += 1
-            click.echo(f"    ✅ {key}: + {new_labels}")
-    click.echo(f"\n  ✅ {ok_count}/{len(by_story)} stories modifiées\n")
+            click.echo(f"    {click.style('OK', fg='green')} {key}: +{new_labels}")
+    click.echo(f"\n  {ok_count}/{tot} stories modifiees\n")
 
 
 @labels.command("check-env")
@@ -724,16 +729,92 @@ def labels_list(ctx, filter_status, filter_sprint, filter_label, filter_key,
     click.echo()
 
 
-def _confirm_one(msg: str) -> str:
-    """Prompt for one action: [y]es / [n]o / [e]dit / [a]ll / [q]uit.
+@labels.command("cleanup")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_cleanup(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                   filter_summary, filter_assignee, filter_points_min, filter_points_max, dry_run):
+    """Remove labels not defined in config dimensions (keeps env: labels)."""
+    from kpi.domain.dimensions import flatten_all, parse_dimensions
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    # Build set of known labels from dimension tree
+    dims = parse_dimensions(cfg["dimensions"])
+    known = {n.label for n in flatten_all(dims)}
+    # Also keep env: labels and any label starting with a known prefix
+    total_rm = 0; affected = 0; auto = False
+    orphan_labels: dict[str, int] = {}
+    for s in matched:
+        to_remove = [l for l in s.labels if l not in known and not l.startswith("env:")]
+        if not to_remove:
+            continue
+        for l in to_remove:
+            orphan_labels[l] = orphan_labels.get(l, 0) + 1
+        if dry_run:
+            affected += 1; total_rm += len(to_remove)
+            click.echo(f"    {click.style(s.key, bold=True)} {s.summary[:50]}")
+            click.echo(f"      {click.style('orphelins:', fg='red')} {to_remove}")
+            click.echo(f"      {click.style('gardes:', fg='green')} {[l for l in s.labels if l not in to_remove]}")
+        else:
+            if not auto:
+                click.echo(f"\n  {'─'*55}")
+                click.echo(f"  {click.style(s.key, bold=True)} {s.summary[:50]}")
+                click.echo(f"    {click.style('supprimer:', fg='red')} {to_remove}")
+                click.echo(f"    {click.style('garder:', fg='green')} {[l for l in s.labels if l not in to_remove]}")
+                r = _confirm_one(f"Supprimer {len(to_remove)} labels orphelins de {s.key} ?")
+                if r == "q": break
+                if r == "n": continue
+                if r == "a": auto = True
+            j.remove_labels(s.key, to_remove)
+            affected += 1; total_rm += len(to_remove)
+            click.echo(f"    {click.style('OK', fg='green')} {s.key}: - {to_remove}")
+    if orphan_labels:
+        click.echo(f"\n  {'─'*55}")
+        click.echo(f"  Labels orphelins (pas dans config dimensions) :")
+        for l in sorted(orphan_labels, key=lambda x: -orphan_labels[x]):
+            click.echo(f"    {click.style(l, fg='red'):30s} {orphan_labels[l]:4d} stories")
+    click.echo(f"\n  {'DRY RUN - ' if dry_run else ''}cleanup: {total_rm} labels orphelins sur {affected} stories")
+    click.echo(f"  {len(known)} labels reconnus dans config dimensions")
+    if dry_run and total_rm > 0:
+        click.echo("  --no-dry-run pour appliquer\n")
 
-    Returns 'y', 'n', 'a', 'q', or edited text (for 'e').
-    """
+
+def _confirm_one(msg: str) -> str:
+    """Prompt for one action: [y]es / [n]o / [a]ll / [q]uit."""
     while True:
-        r = click.prompt(f"  {msg} [y/n/a/q]", default="y").strip().lower()
+        prompt = click.style("  ? ", fg="cyan", bold=True) + msg + click.style(" [y/n/a/q]", fg="bright_black")
+        r = click.prompt(prompt, default="y", show_default=False).strip().lower()
         if r in ("y", "n", "a", "q"):
             return r
-        click.echo("    → y=oui, n=non, a=tout appliquer, q=quitter")
+        click.echo("    y=oui, n=non, a=tout appliquer, q=quitter")
+
+
+def _display_story_action(key: str, summary: str, action_labels: list[str],
+                          index: int = 0, total: int = 0, action: str = "+",
+                          confidence: float | None = None):
+    """Display formatted story info before confirmation prompt."""
+    counter = f"[{index}/{total}] " if total > 0 else ""
+    click.echo(f"\n  {'─'*55}")
+    click.echo(f"  {click.style(counter + key, bold=True)} {summary[:60]}")
+    if action == "+":
+        labels_str = "  ".join(click.style(f"+{l}", fg="green") for l in action_labels)
+    else:
+        labels_str = "  ".join(click.style(f"-{l}", fg="red") for l in action_labels)
+    click.echo(f"    {labels_str}")
+    if confidence is not None:
+        pct = int(confidence * 100)
+        color = "green" if pct >= 70 else "yellow" if pct >= 50 else "red"
+        click.echo(f"    confiance: {click.style(f'{pct}%', fg=color)}")
 
 
 def _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
