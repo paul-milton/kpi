@@ -155,16 +155,16 @@ class KPICalculator:
         date_done_pts = sum(s.story_points for s in date_stories if s.status in COMPLETED_STATUSES)
         tag_scores_date = [self._tag_score(n, date_stories, cur_sprint_name) for n in self._dims]
         date_ratio = date_done_pts / date_total_pts if date_total_pts > 0 else 0.0
-        score_global_date = self._score_global(tag_scores_date,
+        score_global_date = max(self._score_global(tag_scores_date,
                                                time_progress=time_progress,
-                                               total_project_pts=total_pts) or date_ratio
+                                               total_project_pts=total_pts), date_ratio)
 
         # Future projection (Story 1-5)
         projection = self._compute_projection(live, raf, tag_scores)
 
         # "Global projet": weighted average of tag scores (consistent with domain table)
         # Fallback to overall completion ratio when no stories have dimension labels
-        score_global_project = self._score_global(tag_scores) or ratio
+        score_global_project = max(self._score_global(tag_scores), ratio)
 
         # Backlog stability (Story 1-4)
         backlog_stability = self._backlog_stability(live, cur_sprint, raf)

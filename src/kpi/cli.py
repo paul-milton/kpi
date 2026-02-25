@@ -584,6 +584,66 @@ def labels_expand_env(ctx, filter_status, filter_sprint, filter_label, filter_ke
     click.echo(f"\n  🌍 {created}/{total_tasks} sous-tâches créées\n")
 
 
+@labels.command("suggest-conception")
+@click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
+@click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")
+@click.option("--filter-label", "-l", multiple=True, help="Filter by existing label (regex)")
+@click.option("--filter-key", "-k", multiple=True, help="Filter by issue key (regex)")
+@click.option("--filter-summary", "-q", multiple=True, help="Filter by summary text (regex)")
+@click.option("--filter-assignee", "-a", multiple=True, help="Filter by assignee (regex)")
+@click.option("--filter-points-min", type=int, default=None, help="Min story points")
+@click.option("--filter-points-max", type=int, default=None, help="Max story points")
+@click.option("--no-dry-run", "dry_run", is_flag=True, flag_value=False, default=True)
+@click.pass_context
+def labels_suggest_conception(ctx, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max,
+                              dry_run):
+    """Detect stories needing design work and tag with conception/fonctionnel/technique/tests."""
+    cfg = ctx.obj["cfg"]
+    j = JiraAdapter(cfg); t = SemanticTagger(cfg)
+    stories = j.fetch_all_stories()
+    matched = _filter_stories(stories, filter_status, filter_sprint, filter_label, filter_key,
+                              filter_summary, filter_assignee, filter_points_min, filter_points_max)
+    # Group suggestions by story
+    by_story: dict[str, list] = {}
+    for s in matched:
+        sugs = t.suggest_conception(s)
+        if sugs:
+            by_story[s.key] = sugs
+    if not by_story:
+        click.echo("\n  aucune suggestion de conception trouvée.\n")
+        return
+    total_labels = sum(len(v) for v in by_story.values())
+    click.echo(f"\n  🎯 suggest-conception — {total_labels} labels pour {len(by_story)} stories\n")
+    if dry_run:
+        for key, sugs in list(by_story.items())[:30]:
+            labels_str = ", ".join(f"{s.label}({s.confidence:.0%})" for s in sugs)
+            reason = sugs[0].reason if sugs else ""
+            click.echo(f"    {key} → {labels_str}")
+            click.echo(f"      {sugs[0].story_summary[:70]}")
+            click.echo(f"      raison: {reason}")
+        if len(by_story) > 30:
+            click.echo(f"    ... et {len(by_story) - 30} autres")
+        click.echo("\n  DRY RUN — --no-dry-run pour appliquer\n")
+        return
+    ok_count = 0; auto = False
+    for key, sugs in by_story.items():
+        new_labels = [s.label for s in sugs]
+        labels_str = ", ".join(f"{s.label}({s.confidence:.0%})" for s in sugs)
+        if not auto:
+            click.echo(f"  {key}: + {labels_str}")
+            click.echo(f"    {sugs[0].story_summary[:70]}")
+            click.echo(f"    raison: {sugs[0].reason}")
+            r = _confirm_one(f"Ajouter {new_labels} à {key} ?")
+            if r == "q": break
+            if r == "n": continue
+            if r == "a": auto = True
+        if j.add_labels(key, new_labels):
+            ok_count += 1
+            click.echo(f"    ✅ {key}: + {new_labels}")
+    click.echo(f"\n  ✅ {ok_count}/{len(by_story)} stories modifiées\n")
+
+
 @labels.command("check-env")
 @click.option("--filter-status", "-s", multiple=True, help="Filter by status (regex)")
 @click.option("--filter-sprint", "-S", multiple=True, help="Filter by sprint name (regex)")

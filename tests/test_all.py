@@ -1420,6 +1420,66 @@ t("jira_create_subtask_method", 'def create_subtask' in ja_code)
 t("jira_create_subtask_parent", '"parent"' in ja_code and 'parent_key' in ja_code)
 t("jira_create_subtask_labels", 'labels' in ja_code)
 
+# ═══════════════════════════════════════════════════════
+# TAGGER: conception signals
+# ═══════════════════════════════════════════════════════
+from kpi.services.tagger import CONCEPTION_SIGNALS
+t("conception_signals_fonctionnel", "fonctionnel" in CONCEPTION_SIGNALS)
+t("conception_signals_technique", "technique" in CONCEPTION_SIGNALS)
+t("conception_signals_fonc_direct", len(CONCEPTION_SIGNALS["fonctionnel"]["direct"]) >= 3)
+t("conception_signals_tech_direct", len(CONCEPTION_SIGNALS["technique"]["direct"]) >= 3)
+t("conception_signals_fonc_indirect", len(CONCEPTION_SIGNALS["fonctionnel"]["indirect"]) >= 10)
+t("conception_signals_tech_indirect", len(CONCEPTION_SIGNALS["technique"]["indirect"]) >= 10)
+
+# Tagger suggest_conception method
+t("tagger_has_suggest_conception", hasattr(st, 'suggest_conception'))
+t("tagger_has_suggest_conception_all", hasattr(st, 'suggest_conception_all'))
+
+# Test suggest_conception on a fonctionnel story
+s_fonc = JiraStory(key="C1", summary="Conception fonctionnelle du parcours utilisateur",
+                   status=StoryStatus.BACKLOG, story_points=8)
+sug_fonc = st.suggest_conception(s_fonc)
+sug_fonc_labels = [s.label for s in sug_fonc]
+t("conception_fonc_detected", "fonctionnel" in sug_fonc_labels, f"labels={sug_fonc_labels}")
+t("conception_parent_added", "conception" in sug_fonc_labels, f"labels={sug_fonc_labels}")
+t("conception_tests_auto", "tests" in sug_fonc_labels, f"labels={sug_fonc_labels}")
+
+# Test suggest_conception on a technique story
+s_tech = JiraStory(key="C2", summary="Architecture et modèle de données",
+                   status=StoryStatus.BACKLOG, story_points=5)
+sug_tech = st.suggest_conception(s_tech)
+sug_tech_labels = [s.label for s in sug_tech]
+t("conception_tech_detected", "technique" in sug_tech_labels, f"labels={sug_tech_labels}")
+t("conception_tech_no_tests", "tests" not in sug_tech_labels, f"labels={sug_tech_labels}")
+
+# Test: story with no conception signals
+s_none = JiraStory(key="C3", summary="Corriger le bug d'affichage",
+                   status=StoryStatus.IN_PROGRESS, story_points=3)
+sug_none = st.suggest_conception(s_none)
+t("conception_no_match", len(sug_none) == 0, f"unexpected: {[s.label for s in sug_none]}")
+
+# Test: already tagged story is skipped
+s_tagged = JiraStory(key="C4", summary="Conception fonctionnelle du formulaire",
+                     status=StoryStatus.BACKLOG, story_points=5,
+                     labels=["fonctionnel", "conception", "tests"])
+sug_tagged = st.suggest_conception(s_tagged)
+t("conception_skip_existing", len(sug_tagged) == 0, f"should skip: {[s.label for s in sug_tagged]}")
+
+# ═══════════════════════════════════════════════════════
+# CALCULATOR: score fallback uses max() not or
+# ═══════════════════════════════════════════════════════
+t("calc_score_max_fallback", 'max(self._score_global(tag_scores)' in calc)
+t("calc_score_date_max_fallback", 'max(self._score_global(tag_scores_date' in calc)
+
+# CLI: suggest-conception command
+t("cli_suggest_conception", 'suggest-conception' in cli)
+t("cli_suggest_conception_func", 'suggest_conception' in cli)
+t("cli_suggest_conception_confirm", '_confirm_one' in cli)
+
+# Template: météo uses "score projet" not "avancement"
+t("tpl_meteo_score_projet", 'score projet' in macros)
+t("tpl_meteo_no_avancement_label", 'avancement {{ delta' not in macros)
+
 import sys
 print(f"\n  {'🎉' if fail==0 else '💥'} {ok}/{ok+fail} passed")
 sys.exit(1 if fail else 0)

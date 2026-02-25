@@ -59,14 +59,14 @@
       <div class="grid grid-cols-2 gap-2 mt-3">
         <div class="topbox-subcard bg-muted-bg">
           <div class="topbox-sub">{{(r.score_global_date*100)|round(0)|int}}&nbsp;%</div>
-          <div class="topbox-label">avancement {{ delta("score_date") }}</div>
+          <div class="topbox-label">score projet {{ delta("score_date") }}</div>
         </div>
         <div class="topbox-subcard bg-muted-bg">
           <div class="topbox-sub">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
           <div class="topbox-label">temps écoulé</div>
         </div>
       </div>
-      <div class="topbox-label mt-1.5">avancement / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
+      <div class="topbox-label mt-1.5">score projet / temps → météo (≥80% ☀️ ≥60% ⛅ ≥40% 🌥️ ≥20% 🌧️)</div>
     </div>
   </div>
   {# ── CARRÉ TEMPS ── #}
@@ -104,7 +104,7 @@
           <div class="topbox-label">planifiés à date</div>
         </div>
       </div>
-      <div class="topbox-label mt-1.5">avancement pondéré des livrables planifiés jusqu'au sprint courant</div>
+      <div class="topbox-label mt-1.5">score pondéré des livrables planifiés jusqu'au sprint courant</div>
     </div>
   </div>
   {# ── CARRÉ SCORE GLOBAL D'AVANCEMENT ── #}

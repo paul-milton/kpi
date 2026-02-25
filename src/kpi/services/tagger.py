@@ -82,6 +82,35 @@ def _fuzzy_score(needle: str, haystack: str) -> float:
     return SequenceMatcher(None, n_clean, h_clean).ratio() if len(n_clean) >= 4 else 0.0
 
 
+# ── Conception detection signals ──
+CONCEPTION_SIGNALS = {
+    "fonctionnel": {
+        "direct": [
+            "conception fonctionnelle", "spécification fonctionnelle",
+            "expression de besoin",
+        ],
+        "indirect": [
+            "règle de gestion", "parcours utilisateur", "workflow métier",
+            "processus métier", "cas d'usage", "use case",
+            "circuit de validation", "formulaire", "écran",
+            "cahier des charges", "recueil de besoin", "besoin métier",
+            "scénario",
+        ],
+    },
+    "technique": {
+        "direct": [
+            "conception technique", "spécification technique", "architecture",
+        ],
+        "indirect": [
+            "modèle de données", "schéma", "diagramme", "API", "endpoint",
+            "contrat d'interface", "flux de données", "migration",
+            "modélisation", "base de données", "infrastructure",
+            "protocole", "interface technique",
+        ],
+    },
+}
+
+
 class SemanticTagger:
     def __init__(self, cfg: dict[str, Any]) -> None:
         tree = parse_dimensions(cfg["dimensions"])
@@ -148,6 +177,85 @@ class SemanticTagger:
 
     def suggest_all(self, stories: list[JiraStory]) -> list[TagSuggestion]:
         return [s for st in stories for s in self.suggest_labels(st)]
+
+    def suggest_conception(self, story: JiraStory) -> list[TagSuggestion]:
+        """Detect stories needing design work and suggest conception labels.
+
+        Returns suggestions for: conception (parent), fonctionnel, technique, tests.
+        A story tagged fonctionnel also gets tests automatically.
+        """
+        raw_text = f"{story.summary} {story.summary} {story.description}"
+        text = _norm(raw_text)
+        lemma_text = _lemmatize(raw_text)
+        existing = set(story.labels)
+        results: list[TagSuggestion] = []
+        matched_dims: list[str] = []
+
+        for dim, signals in CONCEPTION_SIGNALS.items():
+            if dim in existing:
+                continue
+            matched_kws = []
+            score = 0.0
+            # Direct signals — high confidence
+            for kw in signals["direct"]:
+                fs = _fuzzy_score(kw, text)
+                if fs >= 0.75:
+                    matched_kws.append(kw)
+                    score = max(score, 0.7 + fs * 0.2)
+                else:
+                    lkw = _lemmatize(kw)
+                    if lkw and len(lkw) >= 3 and lkw in lemma_text:
+                        matched_kws.append(kw)
+                        score = max(score, 0.65)
+            # Indirect signals — moderate confidence
+            for kw in signals["indirect"]:
+                fs = _fuzzy_score(kw, text)
+                if fs >= 0.75:
+                    matched_kws.append(kw)
+                    score = max(score, 0.45 + fs * 0.15)
+                else:
+                    lkw = _lemmatize(kw)
+                    if lkw and len(lkw) >= 3 and lkw in lemma_text:
+                        matched_kws.append(kw)
+                        score = max(score, 0.40)
+            # Bonus for multiple matches
+            if len(matched_kws) > 1:
+                score = min(score + (len(matched_kws) - 1) * 0.05, 1.0)
+
+            if matched_kws and score >= self._threshold:
+                matched_dims.append(dim)
+                results.append(TagSuggestion(
+                    story_key=story.key, story_summary=story.summary,
+                    label=dim, confidence=round(score, 2),
+                    reason=", ".join(matched_kws),
+                ))
+
+        if not matched_dims:
+            return []
+
+        # Add parent label 'conception' if not already present
+        if "conception" not in existing:
+            best_score = max(r.confidence for r in results)
+            results.insert(0, TagSuggestion(
+                story_key=story.key, story_summary=story.summary,
+                label="conception", confidence=best_score,
+                reason="parent: " + ", ".join(matched_dims),
+            ))
+
+        # Auto-add 'tests' when fonctionnel is suggested
+        if "fonctionnel" in matched_dims and "tests" not in existing:
+            fonc_sug = next(r for r in results if r.label == "fonctionnel")
+            results.append(TagSuggestion(
+                story_key=story.key, story_summary=story.summary,
+                label="tests", confidence=fonc_sug.confidence,
+                reason="auto: fonctionnel → tests",
+            ))
+
+        return results
+
+    def suggest_conception_all(self, stories: list[JiraStory]) -> list[TagSuggestion]:
+        """Run conception detection on all stories."""
+        return [s for st in stories for s in self.suggest_conception(st)]
 
     def find_untagged(self, stories: list[JiraStory]) -> list[JiraStory]:
         return [s for s in stories
