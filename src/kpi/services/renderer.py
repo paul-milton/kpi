@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from kpi.domain.models import WeeklyReport
 
 _TPL = Path(__file__).parent.parent / "templates"
+_STATIC = Path(__file__).parent.parent / "static"
 
 
 def _pydantic_tojson(value, *args, **kwargs):
@@ -19,7 +20,7 @@ def _pydantic_tojson(value, *args, **kwargs):
 
 class ReportRenderer:
     def __init__(self) -> None:
-        self._env = Environment(loader=FileSystemLoader(str(_TPL)), autoescape=False)
+        self._env = Environment(loader=FileSystemLoader([str(_TPL), str(_STATIC)]), autoescape=False)
         self._env.filters["tojson"] = _pydantic_tojson
 
     @staticmethod
