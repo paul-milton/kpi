@@ -68,7 +68,7 @@ def _snap(r, store):
         tag_scores={ts.label: ts.score for ts in r.tag_scores if ts.total_points > 0},
         backlog_variation=r.backlog_stability.variation_project if r.backlog_stability else 0.0))
 
-def _show(r):
+def _show(r, debug=False):
     click.echo(f"\n  📊 {r.total_points} pts | {r.done_points} terminés ({r.overall_completion:.1%})")
     click.echo(f"  📦 restant estimé: {r.estimated_remaining} pts")
     click.echo(f"  🚨 {len(r.blocked_stories)} bloquées")
@@ -76,6 +76,24 @@ def _show(r):
         click.echo(f"  📈 {r.raf.avg_velocity_per_week} pts/sem | {r.raf.velocity_per_sprint} pts/sprint (besoin: {r.raf.velocity_needed_per_week}/sem)")
         if r.raf.unestimated_count: click.echo(f"  📝 {r.raf.unestimated_count} non estimées: +{r.raf.unestimated_padding} pts au RAF")
         click.echo(f"  {'✅ en bonne voie' if r.raf.on_track else '🚨 à risque'}")
+    if debug:
+        click.echo(f"\n  {'─'*50}")
+        click.echo(f"  DEBUG score/sprints:")
+        click.echo(f"    score_date={r.score_global_date:.4f}  score_project={r.score_global_project:.4f}")
+        click.echo(f"    temps_ecoule={r.time_progress:.2%}  sprint={r.sprint_number}")
+        ds = r.date_stories if hasattr(r, 'date_stories') else []
+        click.echo(f"    date_stories={len(ds)} stories, {sum(s.story_points for s in ds)} pts")
+        if ds:
+            sprints_in_date = {s.sprint for s in ds if s.sprint}
+            click.echo(f"    sprints dans date_stories: {sprints_in_date}")
+        else:
+            click.echo(f"    ⚠️  AUCUNE date_story - le score a date sera 0%")
+            click.echo(f"    verifiez: les stories ont-elles un sprint assigne dans Jira ?")
+            # Show sample sprints from all stories
+            all_sprints = {s.sprint for s in r.all_stories if s.sprint}
+            click.echo(f"    sprints sur all_stories: {list(all_sprints)[:10]}")
+        click.echo(f"    velocites={len(r.velocities)} sprints")
+        click.echo(f"  {'─'*50}")
     click.echo()
 
 
@@ -90,7 +108,7 @@ def preview(ctx, output, date_from, date_to):
     s, v, u, sp = _fetch(cfg); r, _ = _report(cfg, s, v, u, sp)
     html = ReportRenderer().render_preview(r)
     p = Path(output) if output else Path("kpi_preview.html")
-    p.write_text(html, encoding="utf-8"); _show(r)
+    p.write_text(html, encoding="utf-8"); _show(r, debug=ctx.obj["log_level"] == "DEBUG")
     try: webbrowser.open(p.resolve().as_uri())
     except: pass
 
