@@ -46,6 +46,69 @@
 </div>
 {%- endmacro -%}
 
+{# ── Quatre carrés v2 (SQALE) : Note Qualité + Temps + Avancement Planifié + Avancement Global ── #}
+{%- macro top_boxes_sqale() -%}
+{%- set ratio = r.score_global_date / r.time_progress if r.time_progress > 0 else 0 -%}
+{%- set sqale_note = 'A' if ratio >= 0.9 else 'B' if ratio >= 0.75 else 'C' if ratio >= 0.6 else 'D' if ratio >= 0.5 else 'E' -%}
+{%- set sqale_color = 'ok' if sqale_note == 'A' else 'info' if sqale_note == 'B' else 'warn' if sqale_note == 'C' else 'err' -%}
+{%- set sqale_bg = sqale_color ~ '-bg' -%}
+<div class="grid grid-cols-4 gap-3 mb-3">
+  {# ── CARRÉ NOTE QUALITÉ ── #}
+  <div class="topbox">
+    <div class="topbox-title">Note Qualité Projet</div>
+    <div class="topbox-value text-{{sqale_color}}" style="font-size:52px;line-height:1.1">{{sqale_note}}</div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-{{sqale_bg}} mt-3">
+        <div class="topbox-sub">{{(ratio*100)|round(0)|int}}&nbsp;%</div>
+      </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Note l'efficacité du projet à date.<br><b>Formule&nbsp;:</b> Avancement Planifié / Temps Écoulé</div>
+    </div>
+  </div>
+  {# ── CARRÉ TEMPS ── #}
+  <div class="topbox">
+    <div class="topbox-title">Temps Écoulé</div>
+    <div class="topbox-value {%if r.time_progress<=0.5%}text-ok{%elif r.time_progress<=0.75%}text-warn{%else%}text-err{%endif%}">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
+    <div class="mt-2">{{ tbar(r.time_progress, 200, 12) }}</div>
+    <div class="topbox-bottom">
+       <div class="topbox-subcard bg-muted-bg mt-3">
+          <div class="topbox-sub">{{r.business_days_remaining}} <span class="topbox-label">jours restants</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Le % de jours ouvrés consommés.<br><b>Formule&nbsp;:</b> Jours Écoulés / Jours Totaux</div>
+    </div>
+  </div>
+  {# ── CARRÉ AVANCEMENT PLANIFIÉ (À DATE) ── #}
+  <div class="topbox">
+    <div class="topbox-title">Avancement Planifié (à date)</div>
+    <div class="topbox-value {%if r.score_global_date>=0.5%}text-ok{%elif r.score_global_date>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_date*100)|round(0)|int}}&nbsp;% {{ delta("score_date") }}</div>
+    <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-ok-bg mt-3">
+          <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">pts effectifs</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur le périmètre prévu jusqu'à ce sprint.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Planifiés</div>
+    </div>
+  </div>
+  {# ── CARRÉ AVANCEMENT GLOBAL (PROJET) ── #}
+  <div class="topbox">
+    <div class="topbox-title">Avancement Global (projet)</div>
+    <div class="topbox-value {%if r.score_global_project>=0.5%}text-ok{%elif r.score_global_project>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_project*100)|round(0)|int}}&nbsp;% {{ delta("score_projet") }}</div>
+    <div class="mt-2">{{ pbar(r.score_global_project, 200, 12, 0) }}</div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-ok-bg mt-3">
+          <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">pts effectifs</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur la totalité du projet.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Totaux Estimés</div>
+    </div>
+  </div>
+</div>
+<div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
+  <div class="pedagogy" style="margin:0">
+    <strong>Logique des scores</strong>&nbsp;: L'avancement est calculé sur les <strong>points de complexité</strong> des livrables (stories), pas sur leur nombre. Un livrable "En cours" compte pour 50% de ses points.
+    Cette méthode reflète mieux la réalité qu'un simple ratio de stories terminées ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
+  </div>
+</div>
+{%- endmacro -%}
+
 {# ── Quatre carrés : météo + temps + score projet à date + score global d'avancement ── #}
 {%- macro top_boxes() -%}
 {%- set weather_map = {'☀️':'Ensoleillé','⛅':'Partiellement couvert','🌥️':'Couvert','🌧️':'Pluvieux','⛈️':'Orageux'} -%}

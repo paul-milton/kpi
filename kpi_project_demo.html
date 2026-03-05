@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KPI - Global Projet - Sprint 8</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        ok: { DEFAULT: '#36B37E', bg: '#e3fcef' },
+        warn: { DEFAULT: '#F2C94C', bg: '#fffbeb' },
+        err: { DEFAULT: '#DE350B', bg: '#ffebe6' },
+        info: { DEFAULT: '#0052CC', bg: '#deebff' },
+        accent: { DEFAULT: '#6554C0', bg: '#eae6ff' },
+        muted: { DEFAULT: '#6B778C', bg: '#f4f5f7' },
+        dim: '#5E6C84',
+        border: '#DFE1E6',
+      }
+    }
+  }
+}
+</script>
+<style>
+.bar{background:#DFE1E6;border-radius:3px;height:12px;display:inline-block;vertical-align:middle}
+.fill{border-radius:3px;height:12px}.cg{background:#36B37E}.co{background:#FF991F}.cr{background:#DE350B}
+.pct{font-weight:700;margin-left:3px;font-size:11px}.pg{color:#36B37E}.po{color:#FF991F}.pr{color:#DE350B}
+.tog{cursor:pointer;user-select:none}.tog::before{content:'▾ ';font-size:10px;color:#97A0AF}.tog.shut::before{content:'▸ '}
+.hid{display:none}
+.d0{background:#f4f5f7;font-weight:600}.d1{background:#fff}.d2{background:#fafbfc;color:#6B778C;font-size:11px}
+.n{text-align:center}.dc{background:#e3fcef;text-align:center}.da{background:#deebff;text-align:center}
+.db{text-align:center}.dbv{background:#ffebe6;color:#DE350B;font-weight:700}
+a.jk{color:#0052CC;text-decoration:none;font-weight:600}a.jk:hover{text-decoration:underline}
+.drawer{background:#f9fafb;border:1px solid #DFE1E6;border-radius:4px;padding:8px;margin:4px 0 8px 18px;font-size:11px;max-height:200px;overflow-y:auto}
+.drawer table{font-size:11px}.drawer td,.drawer th{padding:2px 6px}
+.pedagogy{background:#f8f9fb;border-left:3px solid #6554C0;padding:6px 10px;margin:6px 0;font-size:11px;color:#5E6C84}
+.v-pos{color:#36B37E;font-weight:700}.v-neg{color:#DE350B;font-weight:700}.v-zero{color:#6B778C}
+.kcard{border-radius:8px;padding:12px;text-align:center}
+.kcard-title{font-size:11px;color:#253858;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+.kcard-value{font-size:22px;font-weight:700;line-height:1.2}
+.kcard-unit{font-size:10px;color:#5E6C84;margin-top:2px}
+.kcard-lg .kcard-value{font-size:26px}
+.topbox{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:20px;text-align:center;display:flex;flex-direction:column}
+.topbox-bottom{margin-top:auto}
+.topbox-title{font-size:14px;color:#6B778C;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;font-weight:600;min-height:36px;display:flex;align-items:center;justify-content:center}
+.topbox-value{font-size:32px;font-weight:700;line-height:1.2}
+.topbox-sub{font-size:16px;font-weight:700}
+.topbox-label{font-size:9px;color:#6B778C}
+.topbox-subcard{border-radius:4px;padding:6px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:44px}
+.section-title{font-size:24px;color:#253858;font-weight:600;border-bottom:2px solid #DFE1E6;padding-bottom:4px;margin-bottom:10px}
+.sub-title{font-size:18px;color:#253858;font-weight:700}
+.th{text-align:left;padding:2px 8px;font-weight:600;border-bottom:2px solid #DFE1E6;font-size:11px}
+.th-default{background:#f4f5f7}.th-accent{background:#eae6ff}.th-err{background:#ffebe6}
+</style>
+</head>
+
+
+<body class="font-sans bg-[#f0f2f5] text-[#172B4D] p-4 text-[13px]">
+<div class="max-w-[1300px] mx-auto">
+
+<div class="bg-white rounded-lg shadow-sm px-5 py-3 mb-3 text-center">
+  <div style="font-size:22px;font-weight:700;color:#253858">KPI</div>
+  <div class="text-muted text-[12px] mt-1">Sprint 8 -S10/2026 -05/03/2026 15:12</div>
+</div>
+<div class="grid grid-cols-4 gap-3 mb-3">
+  
+  <div class="topbox">
+    <div class="topbox-title">Note Qualité Projet</div>
+    <div class="topbox-value text-ok" style="font-size:52px;line-height:1.1">A</div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-ok-bg mt-3">
+        <div class="topbox-sub">163&nbsp;%</div>
+      </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Note l'efficacité du projet à date.<br><b>Formule&nbsp;:</b> Avancement Planifié / Temps Écoulé</div>
+    </div>
+  </div>
+  
+  <div class="topbox">
+    <div class="topbox-title">Temps Écoulé</div>
+    <div class="topbox-value text-ok">43&nbsp;%</div>
+    <div class="mt-2"><div class="bar" style="width:200px;height:12px"><div class="fill cg" style="width:86px;height:12px"></div></div></div>
+    <div class="topbox-bottom">
+       <div class="topbox-subcard bg-muted-bg mt-3">
+          <div class="topbox-sub">143 <span class="topbox-label">jours restants</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Le % de jours ouvrés consommés.<br><b>Formule&nbsp;:</b> Jours Écoulés / Jours Totaux</div>
+    </div>
+  </div>
+  
+  <div class="topbox">
+    <div class="topbox-title">Avancement Planifié (à date)</div>
+    <div class="topbox-value text-ok">70&nbsp;% </div>
+    <div class="mt-2"><div class="bar" style="width:200px;height:12px"><div class="fill cg" style="width:140px;height:12px"></div></div>
+<span class="pct pg" style="font-size:0px">70.2%</span></div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-ok-bg mt-3">
+          <div class="topbox-sub">66.8 <span class="topbox-label">pts effectifs</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur le périmètre prévu jusqu'à ce sprint.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Planifiés</div>
+    </div>
+  </div>
+  
+  <div class="topbox">
+    <div class="topbox-title">Avancement Global (projet)</div>
+    <div class="topbox-value text-ok">60&nbsp;% </div>
+    <div class="mt-2"><div class="bar" style="width:200px;height:12px"><div class="fill cg" style="width:119px;height:12px"></div></div>
+<span class="pct pg" style="font-size:0px">59.8%</span></div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-ok-bg mt-3">
+          <div class="topbox-sub">66.8 <span class="topbox-label">pts effectifs</span></div>
+        </div>
+      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur la totalité du projet.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Totaux Estimés</div>
+    </div>
+  </div>
+</div>
+<div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
+  <div class="pedagogy" style="margin:0">
+    <strong>Logique des scores</strong>&nbsp;: L'avancement est calculé sur les <strong>points de complexité</strong> des livrables (stories), pas sur leur nombre. Un livrable "En cours" compte pour 50% de ses points.
+    Cette méthode reflète mieux la réalité qu'un simple ratio de stories terminées (39&nbsp;%).
+  </div>
+</div>
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+
+  
+  <div class="sub-title mt-1 mb-2 ml-0.5">&#x1F4CA; Synthèse <span class="text-[11px] font-normal text-muted">(restant projeté inclut +10&nbsp;% marge)</span></div>
+  <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-2">
+    <div class="kcard kcard-lg bg-err-bg">
+      <div class="kcard-title">Statut</div>
+      <div class="kcard-value" style="font-size:28px">&#x26A0;&#xFE0F;</div>
+      <span class="text-[11px] font-semibold block mt-1">vigilance requise</span>
+    </div>
+    <div class="kcard kcard-lg bg-err-bg">
+      <div class="kcard-title">Vélocité réelle</div>
+      <div class="kcard-value">2.5</div>
+      <div class="kcard-unit">points par semaine</div>
+    </div>
+    <div class="kcard kcard-lg bg-muted-bg">
+      <div class="kcard-title">Points nécessaires par semaine</div>
+      <div class="kcard-value">4.3</div>
+      <span class="text-[10px] block mt-0.5">écart <span class="v-neg">-1.8 (-42%)</span></span>
+    </div>
+    
+  </div>
+  
+
+  <div class="grid grid-cols-4 gap-2 mt-3">
+    <div class="sub-title ml-0.5 col-span-4">&#x1F3AF; Story points</div>
+    <div class="kcard bg-ok-bg">
+      <div class="kcard-title">Points terminés</div>
+      <div class="kcard-value">54</div>
+      <div class="kcard-unit">points</div>
+      
+    </div>
+    <div class="kcard bg-accent-bg">
+      <div class="kcard-title">Points en cours pondérés</div>
+      <div class="kcard-value">20</div>
+      <div class="kcard-unit">points (41&nbsp;×&nbsp;50%)</div>
+    </div>
+    <div class="kcard bg-muted-bg">
+      <div class="kcard-title">Total projet estimé</div>
+      <div class="kcard-value">180</div>
+      <div class="kcard-unit">points</div>
+    </div>
+    <div class="kcard bg-err-bg">
+      <div class="kcard-title">Points bloqués</div>
+      <div class="kcard-value">13</div>
+      <div class="kcard-unit">points</div>
+      
+    </div>
+    <div class="sub-title ml-0.5 col-span-4 mt-1">&#x1F4DD; User stories</div>
+    <div class="kcard bg-ok-bg">
+      <div class="kcard-title">Terminées</div>
+      <div class="kcard-value">15</div>
+      <div class="kcard-unit">user stories</div>
+    </div>
+    <div class="kcard bg-accent-bg">
+      <div class="kcard-title">En cours</div>
+      <div class="kcard-value">13</div>
+      <div class="kcard-unit">user stories</div>
+    </div>
+    <div class="kcard bg-muted-bg">
+      <div class="kcard-title">Total</div>
+      <div class="kcard-value">49</div>
+      <div class="kcard-unit">user stories</div>
+    </div>
+    <div class="kcard bg-err-bg">
+      <div class="kcard-title">Bloquées</div>
+      <div class="kcard-value">3</div>
+      <div class="kcard-unit">user stories</div>
+    </div>
+  </div>
+</div>
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F4CA; Avancement par domaine <span class="text-[10px] text-muted font-normal">-&#x25BE; déplier, &#x1F4CB; stories</span></h2>
+  <div class="pedagogy mb-2">
+    <strong>Score structurel</strong> ≠ ratio terminé/total.
+    <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
+      <li>Livré = 100&nbsp;% &#x2022; En cours = 50&nbsp;% &#x2022; Non démarré = 0&nbsp;%</li>
+      <li>Pondéré par le poids en story points de chaque livrable</li>
+      <li>Reflète l'avancement réel, pas seulement le nombre de livrables terminés</li>
+      
+    </ul>
+  </div>
+  <table class="w-full border-collapse text-xs">
+  <thead><tr>
+    <th class="th th-default min-w-[200px]">Domaine</th>
+    <th class="th th-default">Météo</th>
+    <th class="th th-default min-w-[140px]">Score structurel</th>
+    
+    <th class="th th-default">Nb US</th>
+    <th class="th th-err">US bloquées</th>
+  </tr></thead>
+  <tbody><tr class="d0" data-nid="n0">
+  <td style="padding-left:6px"><span class="tog" onclick="fold('n0')">Fonctionnel</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:63px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">63.4%</span></td><td class="n">34</td>
+  <td class="db"></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-0">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n0-0')">Référentiels</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:69px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">69.6%</span></td><td class="n">5</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-33" target="_blank">KPI-33 &#8599;</a></td><td>Migrate optimisation data</td><td>specification</td><td class="n">5</td><td style="font-size:9px">optimisation, metiers</td></tr><tr><td><a class="jk" href="/browse/KPI-20" target="_blank">KPI-20 &#8599;</a></td><td>Refactor fonctions service</td><td>done</td><td class="n">5</td><td style="font-size:9px">fonctions</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr><tr><td><a class="jk" href="/browse/KPI-42" target="_blank">KPI-42 &#8599;</a></td><td>Configure ci pipeline</td><td>specification</td><td class="n">5</td><td style="font-size:9px">ci, monitoring, referentiels</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-0" data-nid="n0-0-0">
+  <td style="padding-left:42px">&#x2514; Structures <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-0-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:100px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">100.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-0 hid" id="dw-n0-0-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-0" data-nid="n0-0-1">
+  <td style="padding-left:42px">&#x2514; Métiers <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-0-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛈️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:15px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">15.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-0 hid" id="dw-n0-0-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-33" target="_blank">KPI-33 &#8599;</a></td><td>Migrate optimisation data</td><td>specification</td><td class="n">5</td><td style="font-size:9px">optimisation, metiers</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-0" data-nid="n0-0-2">
+  <td style="padding-left:42px">&#x2514; Fonctions <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-0-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:100px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">100.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-0 hid" id="dw-n0-0-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-20" target="_blank">KPI-20 &#8599;</a></td><td>Refactor fonctions service</td><td>done</td><td class="n">5</td><td style="font-size:9px">fonctions</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-1">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n0-1')">Campagnes</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:65px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">65.4%</span></td><td class="n">4</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-21" target="_blank">KPI-21 &#8599;</a></td><td>Fix tests-integration regression</td><td>review</td><td class="n">3</td><td style="font-size:9px">tests-integration, conception-fonctionnelle, campagnes</td></tr><tr><td><a class="jk" href="/browse/KPI-27" target="_blank">KPI-27 &#8599;</a></td><td>Migrate tests-integration data</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">tests-integration, integration, campagnes, env:dev</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-1" data-nid="n0-1-0">
+  <td style="padding-left:42px">&#x2514; Initialisation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-1-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:75px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">75.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-1 hid" id="dw-n0-1-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-1" data-nid="n0-1-1">
+  <td style="padding-left:42px">&#x2514; Gestion <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-1-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:75px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">75.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-1 hid" id="dw-n0-1-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-2">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n0-2')">Enquêtes</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:58px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">58.0%</span></td><td class="n">11</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-1" target="_blank">KPI-1 &#8599;</a></td><td>Optimize conception-fonctionnelle performance</td><td>todo</td><td class="n">0</td><td style="font-size:9px">conception-fonctionnelle, documentation-novae, saisie</td></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr><tr><td><a class="jk" href="/browse/KPI-15" target="_blank">KPI-15 &#8599;</a></td><td>Add saisie validation</td><td>blocked</td><td class="n">0</td><td style="font-size:9px">saisie, tableaux-de-bord</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr><tr><td><a class="jk" href="/browse/KPI-25" target="_blank">KPI-25 &#8599;</a></td><td>Configure consultation pipeline</td><td>backlog</td><td class="n">2</td><td style="font-size:9px">consultation, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-36" target="_blank">KPI-36 &#8599;</a></td><td>Configure design-ux pipeline</td><td>review</td><td class="n">5</td><td style="font-size:9px">design-ux, validation-enquete</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-6" target="_blank">KPI-6 &#8599;</a></td><td>Optimize validation-enquete performance</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">validation-enquete, exploitation, deploiement, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr><tr><td><a class="jk" href="/browse/KPI-46" target="_blank">KPI-46 &#8599;</a></td><td>Migrate enquetes data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">enquetes, tests-integration, env:prod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-2" data-nid="n0-2-0">
+  <td style="padding-left:42px">&#x2514; Saisie <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-2-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛈️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:15px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">15.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-2 hid" id="dw-n0-2-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-1" target="_blank">KPI-1 &#8599;</a></td><td>Optimize conception-fonctionnelle performance</td><td>todo</td><td class="n">0</td><td style="font-size:9px">conception-fonctionnelle, documentation-novae, saisie</td></tr><tr><td><a class="jk" href="/browse/KPI-15" target="_blank">KPI-15 &#8599;</a></td><td>Add saisie validation</td><td>blocked</td><td class="n">0</td><td style="font-size:9px">saisie, tableaux-de-bord</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-2" data-nid="n0-2-1">
+  <td style="padding-left:42px">&#x2514; Ventilation ETP <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-2-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:100px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">100.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-2 hid" id="dw-n0-2-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-2" data-nid="n0-2-2">
+  <td style="padding-left:42px">&#x2514; Validation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-2-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:48px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">48.3%</span></td><td class="n">4</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-2 hid" id="dw-n0-2-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-6" target="_blank">KPI-6 &#8599;</a></td><td>Optimize validation-enquete performance</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">validation-enquete, exploitation, deploiement, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-36" target="_blank">KPI-36 &#8599;</a></td><td>Configure design-ux pipeline</td><td>review</td><td class="n">5</td><td style="font-size:9px">design-ux, validation-enquete</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n0-2" data-nid="n0-2-3">
+  <td style="padding-left:42px">&#x2514; Consultation / Export <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-2-3')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:49px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">49.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0-2 hid" id="dw-n0-2-3">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr><tr><td><a class="jk" href="/browse/KPI-25" target="_blank">KPI-25 &#8599;</a></td><td>Configure consultation pipeline</td><td>backlog</td><td class="n">2</td><td style="font-size:9px">consultation, env:dev</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-3">
+  <td style="padding-left:24px">&#x2514; Annuaire (ETAA-PADI) <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-3')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛈️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:10px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">10.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-3">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-5" target="_blank">KPI-5 &#8599;</a></td><td>Fix logging regression</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">logging, annuaire, doc-technique, env:recette</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-4">
+  <td style="padding-left:24px">&#x2514; Écran d'accueil <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-4')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:97px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">97.7%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-4">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr><tr><td><a class="jk" href="/browse/KPI-8" target="_blank">KPI-8 &#8599;</a></td><td>Add ecran-accueil validation</td><td>review</td><td class="n">1</td><td style="font-size:9px">ecran-accueil, pilotage, tests-auto</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-5">
+  <td style="padding-left:24px">&#x2514; Documentation NOVAE <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-5')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:76px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">76.7%</span></td><td class="n">4</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-5">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-1" target="_blank">KPI-1 &#8599;</a></td><td>Optimize conception-fonctionnelle performance</td><td>todo</td><td class="n">0</td><td style="font-size:9px">conception-fonctionnelle, documentation-novae, saisie</td></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-17" target="_blank">KPI-17 &#8599;</a></td><td>Implement authentification module</td><td>done</td><td class="n">3</td><td style="font-size:9px">authentification, documentation-novae, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n0" data-nid="n0-6">
+  <td style="padding-left:24px">&#x2514; Conception Fonctionnelle <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n0-6')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:43px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">43.4%</span></td><td class="n">6</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n0 hid" id="dw-n0-6">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-1" target="_blank">KPI-1 &#8599;</a></td><td>Optimize conception-fonctionnelle performance</td><td>todo</td><td class="n">0</td><td style="font-size:9px">conception-fonctionnelle, documentation-novae, saisie</td></tr><tr><td><a class="jk" href="/browse/KPI-14" target="_blank">KPI-14 &#8599;</a></td><td>Fix conception-fonctionnelle regression</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">conception-fonctionnelle</td></tr><tr><td><a class="jk" href="/browse/KPI-21" target="_blank">KPI-21 &#8599;</a></td><td>Fix tests-integration regression</td><td>review</td><td class="n">3</td><td style="font-size:9px">tests-integration, conception-fonctionnelle, campagnes</td></tr><tr><td><a class="jk" href="/browse/KPI-22" target="_blank">KPI-22 &#8599;</a></td><td>Configure conception-fonctionnelle pipeline</td><td>todo</td><td class="n">0</td><td style="font-size:9px">conception-fonctionnelle, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-28" target="_blank">KPI-28 &#8599;</a></td><td>Migrate conception-fonctionnelle data</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">conception-fonctionnelle</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr></table></div></td>
+</tr><tr class="d0" data-nid="n1">
+  <td style="padding-left:6px"><span class="tog" onclick="fold('n1')">Technique</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:57px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">57.6%</span></td><td class="n">54</td>
+  <td class="db"></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-0">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-0')">Conception</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:79px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">79.8%</span></td><td class="n">5</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-31" target="_blank">KPI-31 &#8599;</a></td><td>Fix analyse-statique regression</td><td>done</td><td class="n">5</td><td style="font-size:9px">analyse-statique, tests-auto, conception-technique</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-32" target="_blank">KPI-32 &#8599;</a></td><td>Migrate chiffrement data</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">chiffrement, conception-technique, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-36" target="_blank">KPI-36 &#8599;</a></td><td>Configure design-ux pipeline</td><td>review</td><td class="n">5</td><td style="font-size:9px">design-ux, validation-enquete</td></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-0" data-nid="n1-0-0">
+  <td style="padding-left:42px">&#x2514; Conception Technique <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-0-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:81px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">81.2%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-0 hid" id="dw-n1-0-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-31" target="_blank">KPI-31 &#8599;</a></td><td>Fix analyse-statique regression</td><td>done</td><td class="n">5</td><td style="font-size:9px">analyse-statique, tests-auto, conception-technique</td></tr><tr><td><a class="jk" href="/browse/KPI-32" target="_blank">KPI-32 &#8599;</a></td><td>Migrate chiffrement data</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">chiffrement, conception-technique, env:prod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-0" data-nid="n1-0-1">
+  <td style="padding-left:42px">&#x2514; Design / UX / Accessibilité <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-0-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:79px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">79.2%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-0 hid" id="dw-n1-0-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr><tr><td><a class="jk" href="/browse/KPI-36" target="_blank">KPI-36 &#8599;</a></td><td>Configure design-ux pipeline</td><td>review</td><td class="n">5</td><td style="font-size:9px">design-ux, validation-enquete</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-1">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-1')">Développement</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:54px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">54.6%</span></td><td class="n">6</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-16" target="_blank">KPI-16 &#8599;</a></td><td>Migrate doc-technique data</td><td>todo</td><td class="n">13</td><td style="font-size:9px">doc-technique, frontend</td></tr><tr><td><a class="jk" href="/browse/KPI-27" target="_blank">KPI-27 &#8599;</a></td><td>Migrate tests-integration data</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">tests-integration, integration, campagnes, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-1" data-nid="n1-1-0">
+  <td style="padding-left:42px">&#x2514; Backend <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-1-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:75px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">75.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-1 hid" id="dw-n1-1-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-1" data-nid="n1-1-1">
+  <td style="padding-left:42px">&#x2514; Frontend <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-1-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:50px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">50.5%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-1 hid" id="dw-n1-1-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-16" target="_blank">KPI-16 &#8599;</a></td><td>Migrate doc-technique data</td><td>todo</td><td class="n">13</td><td style="font-size:9px">doc-technique, frontend</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-1" data-nid="n1-1-2">
+  <td style="padding-left:42px">&#x2514; Intégration / Connecteurs <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-1-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:50px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">50.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-1 hid" id="dw-n1-1-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-27" target="_blank">KPI-27 &#8599;</a></td><td>Migrate tests-integration data</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">tests-integration, integration, campagnes, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-2">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-2')">Ops</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:77px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">77.1%</span></td><td class="n">8</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-40" target="_blank">KPI-40 &#8599;</a></td><td>Deploy exploitation feature</td><td>specification</td><td class="n">3</td><td style="font-size:9px">exploitation, scm, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-34" target="_blank">KPI-34 &#8599;</a></td><td>Test deploiement integration</td><td>done</td><td class="n">3</td><td style="font-size:9px">deploiement, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-6" target="_blank">KPI-6 &#8599;</a></td><td>Optimize validation-enquete performance</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">validation-enquete, exploitation, deploiement, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-2" data-nid="n1-2-0">
+  <td style="padding-left:42px">&#x2514; Infrastructure <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-2-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:100px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">100.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-2 hid" id="dw-n1-2-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-3" target="_blank">KPI-3 &#8599;</a></td><td>Fix infrastructure regression</td><td>done</td><td class="n">8</td><td style="font-size:9px">infrastructure, design-ux, ventilation, ecran-accueil</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-2" data-nid="n1-2-1">
+  <td style="padding-left:42px">&#x2514; Déploiement <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-2-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:89px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">89.3%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-2 hid" id="dw-n1-2-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-6" target="_blank">KPI-6 &#8599;</a></td><td>Optimize validation-enquete performance</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">validation-enquete, exploitation, deploiement, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-34" target="_blank">KPI-34 &#8599;</a></td><td>Test deploiement integration</td><td>done</td><td class="n">3</td><td style="font-size:9px">deploiement, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-37" target="_blank">KPI-37 &#8599;</a></td><td>Update deploiement documentation</td><td>done</td><td class="n">8</td><td style="font-size:9px">deploiement, frontend, documentation-novae, structures</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-2" data-nid="n1-2-2">
+  <td style="padding-left:42px">&#x2514; Exploitation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-2-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:25px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">25.0%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-2 hid" id="dw-n1-2-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-6" target="_blank">KPI-6 &#8599;</a></td><td>Optimize validation-enquete performance</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">validation-enquete, exploitation, deploiement, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-40" target="_blank">KPI-40 &#8599;</a></td><td>Deploy exploitation feature</td><td>specification</td><td class="n">3</td><td style="font-size:9px">exploitation, scm, env:preprod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-3">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-3')">DevOps</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-3')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:41px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">41.3%</span></td><td class="n">7</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-3">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-40" target="_blank">KPI-40 &#8599;</a></td><td>Deploy exploitation feature</td><td>specification</td><td class="n">3</td><td style="font-size:9px">exploitation, scm, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-42" target="_blank">KPI-42 &#8599;</a></td><td>Configure ci pipeline</td><td>specification</td><td class="n">5</td><td style="font-size:9px">ci, monitoring, referentiels</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-10" target="_blank">KPI-10 &#8599;</a></td><td>Optimize suivi-avancement performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">suivi-avancement, scm</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-3" data-nid="n1-3-0">
+  <td style="padding-left:42px">&#x2514; Intégration Continue <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-3-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:23px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">23.2%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-3 hid" id="dw-n1-3-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr><tr><td><a class="jk" href="/browse/KPI-42" target="_blank">KPI-42 &#8599;</a></td><td>Configure ci pipeline</td><td>specification</td><td class="n">5</td><td style="font-size:9px">ci, monitoring, referentiels</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-3" data-nid="n1-3-2">
+  <td style="padding-left:42px">&#x2514; Gestion de Code <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-3-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:57px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">57.9%</span></td><td class="n">4</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-3 hid" id="dw-n1-3-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-10" target="_blank">KPI-10 &#8599;</a></td><td>Optimize suivi-avancement performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">suivi-avancement, scm</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-40" target="_blank">KPI-40 &#8599;</a></td><td>Deploy exploitation feature</td><td>specification</td><td class="n">3</td><td style="font-size:9px">exploitation, scm, env:preprod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-4">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-4')">Qualité & Tests</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:59px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">59.9%</span></td><td class="n">11</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-4">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr><tr><td><a class="jk" href="/browse/KPI-8" target="_blank">KPI-8 &#8599;</a></td><td>Add ecran-accueil validation</td><td>review</td><td class="n">1</td><td style="font-size:9px">ecran-accueil, pilotage, tests-auto</td></tr><tr><td><a class="jk" href="/browse/KPI-31" target="_blank">KPI-31 &#8599;</a></td><td>Fix analyse-statique regression</td><td>done</td><td class="n">5</td><td style="font-size:9px">analyse-statique, tests-auto, conception-technique</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-44" target="_blank">KPI-44 &#8599;</a></td><td>Configure tests-fonctionnels pipeline</td><td>done</td><td class="n">0</td><td style="font-size:9px">tests-fonctionnels, homologation</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr><tr><td><a class="jk" href="/browse/KPI-27" target="_blank">KPI-27 &#8599;</a></td><td>Migrate tests-integration data</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">tests-integration, integration, campagnes, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-46" target="_blank">KPI-46 &#8599;</a></td><td>Migrate enquetes data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">enquetes, tests-integration, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-21" target="_blank">KPI-21 &#8599;</a></td><td>Fix tests-integration regression</td><td>review</td><td class="n">3</td><td style="font-size:9px">tests-integration, conception-fonctionnelle, campagnes</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-4" data-nid="n1-4-0">
+  <td style="padding-left:42px">&#x2514; Tests Unitaires <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:30px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">30.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-4 hid" id="dw-n1-4-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-4" data-nid="n1-4-1">
+  <td style="padding-left:42px">&#x2514; Tests d'Intégration <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:45px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">45.9%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-4 hid" id="dw-n1-4-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-21" target="_blank">KPI-21 &#8599;</a></td><td>Fix tests-integration regression</td><td>review</td><td class="n">3</td><td style="font-size:9px">tests-integration, conception-fonctionnelle, campagnes</td></tr><tr><td><a class="jk" href="/browse/KPI-27" target="_blank">KPI-27 &#8599;</a></td><td>Migrate tests-integration data</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">tests-integration, integration, campagnes, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-46" target="_blank">KPI-46 &#8599;</a></td><td>Migrate enquetes data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">enquetes, tests-integration, env:prod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-4" data-nid="n1-4-2">
+  <td style="padding-left:42px">&#x2514; Tests Fonctionnels <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:100px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">100.0%</span></td><td class="n">1</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-4 hid" id="dw-n1-4-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-44" target="_blank">KPI-44 &#8599;</a></td><td>Configure tests-fonctionnels pipeline</td><td>done</td><td class="n">0</td><td style="font-size:9px">tests-fonctionnels, homologation</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-4" data-nid="n1-4-3">
+  <td style="padding-left:42px">&#x2514; Tests Automatisés <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4-3')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:95px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">95.8%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-4 hid" id="dw-n1-4-3">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-8" target="_blank">KPI-8 &#8599;</a></td><td>Add ecran-accueil validation</td><td>review</td><td class="n">1</td><td style="font-size:9px">ecran-accueil, pilotage, tests-auto</td></tr><tr><td><a class="jk" href="/browse/KPI-31" target="_blank">KPI-31 &#8599;</a></td><td>Fix analyse-statique regression</td><td>done</td><td class="n">5</td><td style="font-size:9px">analyse-statique, tests-auto, conception-technique</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-4" data-nid="n1-4-4">
+  <td style="padding-left:42px">&#x2514; Analyse Statique <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-4-4')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:75px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">75.0%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-4 hid" id="dw-n1-4-4">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-12" target="_blank">KPI-12 &#8599;</a></td><td>Deploy analyse-statique feature</td><td>review</td><td class="n">3</td><td style="font-size:9px">analyse-statique, consultation, gestion</td></tr><tr><td><a class="jk" href="/browse/KPI-31" target="_blank">KPI-31 &#8599;</a></td><td>Fix analyse-statique regression</td><td>done</td><td class="n">5</td><td style="font-size:9px">analyse-statique, tests-auto, conception-technique</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-5">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-5')">Performance</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-5')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:57px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">57.5%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-5">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-33" target="_blank">KPI-33 &#8599;</a></td><td>Migrate optimisation data</td><td>specification</td><td class="n">5</td><td style="font-size:9px">optimisation, metiers</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-5" data-nid="n1-5-1">
+  <td style="padding-left:42px">&#x2514; Optimisation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-5-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:57px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">57.5%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-5 hid" id="dw-n1-5-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-33" target="_blank">KPI-33 &#8599;</a></td><td>Migrate optimisation data</td><td>specification</td><td class="n">5</td><td style="font-size:9px">optimisation, metiers</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-6">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-6')">Observabilité</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-6')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:30px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">30.7%</span></td><td class="n">6</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-6">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-7" target="_blank">KPI-7 &#8599;</a></td><td>Refactor chiffrement service</td><td>done</td><td class="n">3</td><td style="font-size:9px">chiffrement, habilitations, monitoring, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-2" target="_blank">KPI-2 &#8599;</a></td><td>Optimize monitoring performance</td><td>done</td><td class="n">2</td><td style="font-size:9px">monitoring, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-5" target="_blank">KPI-5 &#8599;</a></td><td>Fix logging regression</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">logging, annuaire, doc-technique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-42" target="_blank">KPI-42 &#8599;</a></td><td>Configure ci pipeline</td><td>specification</td><td class="n">5</td><td style="font-size:9px">ci, monitoring, referentiels</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr><tr><td><a class="jk" href="/browse/KPI-50" target="_blank">KPI-50 &#8599;</a></td><td>Test logging integration</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">logging</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-6" data-nid="n1-6-0">
+  <td style="padding-left:42px">&#x2514; Monitoring <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-6-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:41px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">41.7%</span></td><td class="n">4</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-6 hid" id="dw-n1-6-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-2" target="_blank">KPI-2 &#8599;</a></td><td>Optimize monitoring performance</td><td>done</td><td class="n">2</td><td style="font-size:9px">monitoring, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-7" target="_blank">KPI-7 &#8599;</a></td><td>Refactor chiffrement service</td><td>done</td><td class="n">3</td><td style="font-size:9px">chiffrement, habilitations, monitoring, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-42" target="_blank">KPI-42 &#8599;</a></td><td>Configure ci pipeline</td><td>specification</td><td class="n">5</td><td style="font-size:9px">ci, monitoring, referentiels</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-6" data-nid="n1-6-1">
+  <td style="padding-left:42px">&#x2514; Logging / Traces <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-6-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛈️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:10px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">10.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-6 hid" id="dw-n1-6-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-5" target="_blank">KPI-5 &#8599;</a></td><td>Fix logging regression</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">logging, annuaire, doc-technique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-50" target="_blank">KPI-50 &#8599;</a></td><td>Test logging integration</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">logging</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n1" data-nid="n1-7">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n1-7')">Sécurité</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-7')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:48px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">48.7%</span></td><td class="n">9</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1 hid" id="dw-n1-7">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-7" target="_blank">KPI-7 &#8599;</a></td><td>Refactor chiffrement service</td><td>done</td><td class="n">3</td><td style="font-size:9px">chiffrement, habilitations, monitoring, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-26" target="_blank">KPI-26 &#8599;</a></td><td>Deploy homologation feature</td><td>todo</td><td class="n">5</td><td style="font-size:9px">homologation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-44" target="_blank">KPI-44 &#8599;</a></td><td>Configure tests-fonctionnels pipeline</td><td>done</td><td class="n">0</td><td style="font-size:9px">tests-fonctionnels, homologation</td></tr><tr><td><a class="jk" href="/browse/KPI-32" target="_blank">KPI-32 &#8599;</a></td><td>Migrate chiffrement data</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">chiffrement, conception-technique, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-17" target="_blank">KPI-17 &#8599;</a></td><td>Implement authentification module</td><td>done</td><td class="n">3</td><td style="font-size:9px">authentification, documentation-novae, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-13" target="_blank">KPI-13 &#8599;</a></td><td>Fix autorisation regression</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">autorisation</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-7" data-nid="n1-7-0">
+  <td style="padding-left:42px">&#x2514; Authentification / SSO <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-7-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:54px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">55.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-7 hid" id="dw-n1-7-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-9" target="_blank">KPI-9 &#8599;</a></td><td>Migrate authentification data</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">authentification, ci, exploitation, documentation-novae</td></tr><tr><td><a class="jk" href="/browse/KPI-17" target="_blank">KPI-17 &#8599;</a></td><td>Implement authentification module</td><td>done</td><td class="n">3</td><td style="font-size:9px">authentification, documentation-novae, env:dev</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-7" data-nid="n1-7-1">
+  <td style="padding-left:42px">&#x2514; Autorisation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-7-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:35px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">35.0%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-7 hid" id="dw-n1-7-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-13" target="_blank">KPI-13 &#8599;</a></td><td>Fix autorisation regression</td><td>backlog</td><td class="n">3</td><td style="font-size:9px">autorisation</td></tr><tr><td><a class="jk" href="/browse/KPI-39" target="_blank">KPI-39 &#8599;</a></td><td>Implement scm module</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">scm, autorisation, analyse-statique, env:recette</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-7" data-nid="n1-7-2">
+  <td style="padding-left:42px">&#x2514; Homologation Sécurité <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-7-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:33px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">33.3%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-7 hid" id="dw-n1-7-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-26" target="_blank">KPI-26 &#8599;</a></td><td>Deploy homologation feature</td><td>todo</td><td class="n">5</td><td style="font-size:9px">homologation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-44" target="_blank">KPI-44 &#8599;</a></td><td>Configure tests-fonctionnels pipeline</td><td>done</td><td class="n">0</td><td style="font-size:9px">tests-fonctionnels, homologation</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n1-7" data-nid="n1-7-3">
+  <td style="padding-left:42px">&#x2514; Chiffrement <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n1-7-3')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">⛅</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:63px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">63.6%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n1-7 hid" id="dw-n1-7-3">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-7" target="_blank">KPI-7 &#8599;</a></td><td>Refactor chiffrement service</td><td>done</td><td class="n">3</td><td style="font-size:9px">chiffrement, habilitations, monitoring, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-32" target="_blank">KPI-32 &#8599;</a></td><td>Migrate chiffrement data</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">chiffrement, conception-technique, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-48" target="_blank">KPI-48 &#8599;</a></td><td>Test chiffrement integration</td><td>in-progress</td><td class="n">5</td><td style="font-size:9px">chiffrement, conception-fonctionnelle, design-ux, tests-unitaires, env:preprod</td></tr></table></div></td>
+</tr><tr class="d0" data-nid="n2">
+  <td style="padding-left:6px"><span class="tog" onclick="fold('n2')">Organisationnel</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:43px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">43.2%</span></td><td class="n">22</td>
+  <td class="db dbv">13</td>
+</tr><tr class="d1 kid p-n2" data-nid="n2-0">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n2-0')">Pilotage</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:46px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">46.9%</span></td><td class="n">8</td>
+  <td class="db dbv">8</td>
+</tr><tr class="kid p-n2 hid" id="dw-n2-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-19" target="_blank">KPI-19 &#8599;</a></td><td>Configure tableaux-de-bord pipeline</td><td>backlog</td><td class="n">2</td><td style="font-size:9px">tableaux-de-bord</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-15" target="_blank">KPI-15 &#8599;</a></td><td>Add saisie validation</td><td>blocked</td><td class="n">0</td><td style="font-size:9px">saisie, tableaux-de-bord</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-10" target="_blank">KPI-10 &#8599;</a></td><td>Optimize suivi-avancement performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">suivi-avancement, scm</td></tr><tr><td><a class="jk" href="/browse/KPI-11" target="_blank">KPI-11 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>blocked</td><td class="n">8</td><td style="font-size:9px">suivi-avancement</td></tr><tr><td><a class="jk" href="/browse/KPI-8" target="_blank">KPI-8 &#8599;</a></td><td>Add ecran-accueil validation</td><td>review</td><td class="n">1</td><td style="font-size:9px">ecran-accueil, pilotage, tests-auto</td></tr><tr><td><a class="jk" href="/browse/KPI-45" target="_blank">KPI-45 &#8599;</a></td><td>Refactor pilotage service</td><td>in-progress</td><td class="n">0</td><td style="font-size:9px">pilotage, habilitations, env:dev</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n2-0" data-nid="n2-0-0">
+  <td style="padding-left:42px">&#x2514; Tableaux de Bord <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-0-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:36px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">36.0%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n2-0 hid" id="dw-n2-0-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-15" target="_blank">KPI-15 &#8599;</a></td><td>Add saisie validation</td><td>blocked</td><td class="n">0</td><td style="font-size:9px">saisie, tableaux-de-bord</td></tr><tr><td><a class="jk" href="/browse/KPI-19" target="_blank">KPI-19 &#8599;</a></td><td>Configure tableaux-de-bord pipeline</td><td>backlog</td><td class="n">2</td><td style="font-size:9px">tableaux-de-bord</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n2-0" data-nid="n2-0-1">
+  <td style="padding-left:42px">&#x2514; Suivi Avancement <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-0-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:48px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">48.6%</span></td><td class="n">3</td>
+  <td class="db dbv">8</td>
+</tr><tr class="kid p-n2-0 hid" id="dw-n2-0-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-10" target="_blank">KPI-10 &#8599;</a></td><td>Optimize suivi-avancement performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">suivi-avancement, scm</td></tr><tr><td><a class="jk" href="/browse/KPI-11" target="_blank">KPI-11 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>blocked</td><td class="n">8</td><td style="font-size:9px">suivi-avancement</td></tr><tr><td><a class="jk" href="/browse/KPI-38" target="_blank">KPI-38 &#8599;</a></td><td>Update suivi-avancement documentation</td><td>delivered</td><td class="n">5</td><td style="font-size:9px">suivi-avancement, optimisation, infrastructure, structures, env:preprod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n2" data-nid="n2-1">
+  <td style="padding-left:24px">&#x2514; Habilitations <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">☀️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill cg" style="width:83px;height:12px"></div></div>
+<span class="pct pg" style="font-size:11px">83.3%</span></td><td class="n">5</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n2 hid" id="dw-n2-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-7" target="_blank">KPI-7 &#8599;</a></td><td>Refactor chiffrement service</td><td>done</td><td class="n">3</td><td style="font-size:9px">chiffrement, habilitations, monitoring, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-41" target="_blank">KPI-41 &#8599;</a></td><td>Configure integration pipeline</td><td>in-progress</td><td class="n">3</td><td style="font-size:9px">integration, ci, habilitations, backend</td></tr><tr><td><a class="jk" href="/browse/KPI-45" target="_blank">KPI-45 &#8599;</a></td><td>Refactor pilotage service</td><td>in-progress</td><td class="n">0</td><td style="font-size:9px">pilotage, habilitations, env:dev</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr></table></div></td>
+</tr><tr class="d1 kid p-n2" data-nid="n2-2">
+  <td style="padding-left:24px"><span class="tog" onclick="fold('n2-2')">Documentation</span> <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:29px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">29.5%</span></td><td class="n">9</td>
+  <td class="db dbv">5</td>
+</tr><tr class="kid p-n2 hid" id="dw-n2-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-24" target="_blank">KPI-24 &#8599;</a></td><td>Optimize formation performance</td><td>blocked</td><td class="n">5</td><td style="font-size:9px">formation</td></tr><tr><td><a class="jk" href="/browse/KPI-4" target="_blank">KPI-4 &#8599;</a></td><td>Configure doc-utilisateur pipeline</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-5" target="_blank">KPI-5 &#8599;</a></td><td>Fix logging regression</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">logging, annuaire, doc-technique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr><tr><td><a class="jk" href="/browse/KPI-16" target="_blank">KPI-16 &#8599;</a></td><td>Migrate doc-technique data</td><td>todo</td><td class="n">13</td><td style="font-size:9px">doc-technique, frontend</td></tr><tr><td><a class="jk" href="/browse/KPI-30" target="_blank">KPI-30 &#8599;</a></td><td>Optimize formation performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">formation</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n2-2" data-nid="n2-2-0">
+  <td style="padding-left:42px">&#x2514; Documentation Technique <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-2-0')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:25px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">25.5%</span></td><td class="n">3</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n2-2 hid" id="dw-n2-2-0">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-5" target="_blank">KPI-5 &#8599;</a></td><td>Fix logging regression</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">logging, annuaire, doc-technique, env:recette</td></tr><tr><td><a class="jk" href="/browse/KPI-16" target="_blank">KPI-16 &#8599;</a></td><td>Migrate doc-technique data</td><td>todo</td><td class="n">13</td><td style="font-size:9px">doc-technique, frontend</td></tr><tr><td><a class="jk" href="/browse/KPI-49" target="_blank">KPI-49 &#8599;</a></td><td>Review habilitations design</td><td>done</td><td class="n">2</td><td style="font-size:9px">habilitations, ventilation, doc-technique, ecran-accueil, env:prod</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n2-2" data-nid="n2-2-1">
+  <td style="padding-left:42px">&#x2514; Documentation Utilisateur <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-2-1')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌥️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:43px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">43.8%</span></td><td class="n">2</td>
+  <td class="db"></td>
+</tr><tr class="kid p-n2-2 hid" id="dw-n2-2-1">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-4" target="_blank">KPI-4 &#8599;</a></td><td>Configure doc-utilisateur pipeline</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">doc-utilisateur</td></tr><tr><td><a class="jk" href="/browse/KPI-23" target="_blank">KPI-23 &#8599;</a></td><td>Add backend validation</td><td>done</td><td class="n">3</td><td style="font-size:9px">backend, scm, habilitations, doc-utilisateur</td></tr></table></div></td>
+</tr><tr class="d2 kid p-n2-2" data-nid="n2-2-2">
+  <td style="padding-left:42px">&#x2514; Formation <span style="cursor:pointer;font-size:9px;color:#0052CC" onclick="td2('n2-2-2')" title="stories">&#x1F4CB;</span></td>
+  <td class="n">🌧️</td>
+  <td><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:26px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">26.9%</span></td><td class="n">4</td>
+  <td class="db dbv">5</td>
+</tr><tr class="kid p-n2-2 hid" id="dw-n2-2-2">
+  <td colspan="5"><div class="drawer"><table><tr><th>Clé</th><th>Résumé</th><th>Statut</th><th>Points</th><th>Labels</th></tr><tr><td><a class="jk" href="/browse/KPI-24" target="_blank">KPI-24 &#8599;</a></td><td>Optimize formation performance</td><td>blocked</td><td class="n">5</td><td style="font-size:9px">formation</td></tr><tr><td><a class="jk" href="/browse/KPI-30" target="_blank">KPI-30 &#8599;</a></td><td>Optimize formation performance</td><td>done</td><td class="n">1</td><td style="font-size:9px">formation</td></tr><tr><td><a class="jk" href="/browse/KPI-43" target="_blank">KPI-43 &#8599;</a></td><td>Refactor formation service</td><td>review</td><td class="n">2</td><td style="font-size:9px">formation, validation-enquete, tableaux-de-bord, initialisation, env:preprod</td></tr><tr><td><a class="jk" href="/browse/KPI-47" target="_blank">KPI-47 &#8599;</a></td><td>Update monitoring documentation</td><td>backlog</td><td class="n">5</td><td style="font-size:9px">monitoring, tests-unitaires, validation-enquete, formation</td></tr></table></div></td>
+</tr></tbody>
+  </table>
+</div>
+
+
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F4C8; Projection -2.5 pts/sem</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="th th-default whitespace-nowrap">Terminés</th>
+    <th class="th th-default whitespace-nowrap">Restant (+10&nbsp;%)</th>
+    <th class="th th-default whitespace-nowrap">Sem. écoulées</th>
+    <th class="th th-default whitespace-nowrap">Sem. restantes</th>
+    <th class="th th-default whitespace-nowrap">Capacité</th>
+    <th class="th th-default whitespace-nowrap">Échéance</th>
+    <th class="th th-default whitespace-nowrap">Besoin/sem</th>
+    <th class="th th-default whitespace-nowrap">Statut</th>
+  </tr>
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">54 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">126 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">22 sem</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">29 sem</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-err-bg">72 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">30/09/2026</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">4.3 pts/sem</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-err-bg">&#x1F6A8;</td>
+  </tr>
+  </table>
+</div>
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F3C3; Vélocité</h2>
+  <table class="w-full border-collapse text-xs">
+  <thead>
+  <tr>
+    <th class="th th-default text-left">Sprint</th>
+    
+    <th class="th th-default text-center">Engagés</th>
+    <th class="th th-default text-center">Livrés</th>
+    <th class="th th-default text-center">pts/sem</th>
+    <th class="th th-default text-center">Stories</th>
+  </tr>
+  </thead>
+  <tbody>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 1</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">0.0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">1/1</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 2</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">10</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">3.3 <span class="text-[9px] v-pos">+3.3</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">3/3</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 3</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">14</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">4.7 <span class="text-[9px] v-pos">+1.4</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">3/3</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 4</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">9</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">3.0 <span class="text-[9px] v-neg">-1.7</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">2/2</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 5</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">8</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">2.7 <span class="text-[9px] v-neg">-0.3</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">2/3</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 6</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">3</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">1.0 <span class="text-[9px] v-neg">-1.7</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">1/2</td>
+  </tr>
+  
+  <tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-semibold">Sprint 7</td>
+    
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold bg-ok-bg">8</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">2.7 <span class="text-[9px] v-pos">+1.7</span></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">2/2</td>
+  </tr>
+  
+  </tbody>
+  <tfoot>
+  <tr class="bg-accent-bg">
+    <td class="px-2 py-1 border-t-2 border-border font-bold">Moyenne</td>
+    
+    <td class="px-2 py-1 border-t-2 border-border text-center">0</td>
+    <td class="px-2 py-1 border-t-2 border-border text-center font-bold">7</td>
+    <td class="px-2 py-1 border-t-2 border-border text-center font-bold">2.5</td>
+    <td></td>
+  </tr>
+  <tr class="bg-accent-bg">
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">Médiane</td>
+    
+    <td></td>
+    <td></td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center font-bold">2.7</td>
+    <td></td>
+  </tr>
+  </tfoot>
+  </table>
+</div>
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F30D; Environnements</h2>
+  <table class="w-full border-collapse text-xs">
+  <thead><tr>
+    <th class="th th-default min-w-[140px]">Environnement</th>
+    <th class="th th-default">Stories</th>
+    <th class="th th-default">Points totaux</th>
+    <th class="th th-default">Points termin&eacute;s</th>
+    <th class="th th-default min-w-[120px]">Avancement</th>
+  </tr></thead>
+  <tbody><tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">dev</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">4</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">10 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">3 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100"><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:30px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">30.0%</span></td>
+  </tr><tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">preprod</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">7</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">26 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">8 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100"><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:30px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">30.8%</span></td>
+  </tr><tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">prod</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">5</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">10 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">4 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100"><div class="bar" style="width:100px;height:12px"><div class="fill co" style="width:40px;height:12px"></div></div>
+<span class="pct po" style="font-size:11px">40.0%</span></td>
+  </tr><tr>
+    <td class="px-2 py-1 border-b border-gray-100 font-bold">recette</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">3</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">13 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center bg-ok-bg">3 pts</td>
+    <td class="px-2 py-1 border-b border-gray-100"><div class="bar" style="width:100px;height:12px"><div class="fill cr" style="width:23px;height:12px"></div></div>
+<span class="pct pr" style="font-size:11px">23.1%</span></td>
+  </tr></tbody>
+  </table><div class="mt-2 p-2 bg-warn-bg rounded text-xs">
+    <div class="font-semibold mb-1">&#x26A0;&#xFE0F; 7 stories ops/infra sans couverture env compl&egrave;te</div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-3" target="_blank">KPI-3</a> -Fix infrastructure regression <span class="text-muted">(manquants: dev, recette, preprod, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-5" target="_blank">KPI-5</a> -Fix logging regression <span class="text-muted">(manquants: dev, preprod, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-6" target="_blank">KPI-6</a> -Optimize validation-enquete performance <span class="text-muted">(manquants: dev, recette, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-34" target="_blank">KPI-34</a> -Test deploiement integration <span class="text-muted">(manquants: dev, preprod, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-37" target="_blank">KPI-37</a> -Update deploiement documentation <span class="text-muted">(manquants: dev, recette, preprod, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-38" target="_blank">KPI-38</a> -Update suivi-avancement documentation <span class="text-muted">(manquants: dev, recette, prod)</span></div><div class="ml-2">&#x2022; <a class="jk" href="/browse/KPI-50" target="_blank">KPI-50</a> -Test logging integration <span class="text-muted">(manquants: dev, recette, preprod, prod)</span></div></div></div>
+
+
+
+<div class="bg-white rounded-lg shadow-sm p-[18px] mb-3.5">
+  <h2 class="section-title">&#x1F6A8; User stories bloquées -3 US (13 pts)</h2>
+  <table class="w-full border-collapse text-xs">
+  <tr>
+    <th class="th th-default">Clé</th>
+    <th class="th th-default">Résumé</th>
+    <th class="th th-default">Points</th>
+  </tr>
+  
+  <tr class="bg-err-bg">
+    <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="/browse/KPI-11" target="_blank">KPI-11 &#8599;</a></td>
+    <td class="px-2 py-1 border-b border-gray-100">Update suivi-avancement documentation</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">8 pts</td>
+  </tr>
+  
+  <tr class="bg-err-bg">
+    <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="/browse/KPI-15" target="_blank">KPI-15 &#8599;</a></td>
+    <td class="px-2 py-1 border-b border-gray-100">Add saisie validation</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">0 pts</td>
+  </tr>
+  
+  <tr class="bg-err-bg">
+    <td class="px-2 py-1 border-b border-gray-100"><a class="jk" href="/browse/KPI-24" target="_blank">KPI-24 &#8599;</a></td>
+    <td class="px-2 py-1 border-b border-gray-100">Optimize formation performance</td>
+    <td class="px-2 py-1 border-b border-gray-100 text-center">5 pts</td>
+  </tr>
+  
+  </table>
+</div>
+
+
+<div class="text-center text-[#A5ADBA] text-[10px] mt-3.5">KPI v8 -rapport global projet -sprint 8 -05/03/2026 15:12</div>
+</div>
+
+<script>
+function fold(id){
+  const b=document.querySelector(`[data-nid="${id}"] .tog`);if(!b)return;
+  const s=b.classList.toggle('shut');
+  document.querySelectorAll(`.p-${id}`).forEach(r=>{
+    if(s){r.classList.add('hid');const t=r.querySelector('.tog');if(t&&!t.classList.contains('shut')){const sid=r.dataset.nid;if(sid)fold(sid)}}
+    else if(!r.id||!r.id.startsWith('dw-'))r.classList.remove('hid')
+  });
+}
+function td2(nid){const e=document.getElementById('dw-'+nid);if(e)e.classList.toggle('hid')}
+</script>
+</body>
+</html>
