@@ -44,67 +44,99 @@
   <div class="text-muted text-[12px] mt-1">Sprint {{r.sprint_number}} -S{{r.week_number}}/{{r.year}} -{{r.generated_at.strftime('%d/%m/%Y %H:%M')}}</div>
   {%- if has_prev %}<div class="text-[10px] text-dim mt-0.5">Comparaison avec la période précédente -les variations sont indiquées entre parenthèses</div>{%- endif %}
 </div>
+<div class="bg-warn-bg text-yellow-900 p-2 rounded-lg text-center text-xs mb-3 shadow-sm">
+  &#x26A0;&#xFE0F; <strong>Rappel :</strong> La pertinence de ces indicateurs dépend directement de la qualité et de la complétude des tickets Jira (estimations, statuts, labels).
+</div>
 {%- endmacro -%}
 
 {# ── Quatre carrés v2 (SQALE) : Note Qualité + Temps + Avancement Planifié + Avancement Global ── #}
 {%- macro top_boxes_sqale() -%}
 {%- set ratio = r.score_global_date / r.time_progress if r.time_progress > 0 else 0 -%}
-{%- set sqale_note = 'A' if ratio >= 0.9 else 'B' if ratio >= 0.75 else 'C' if ratio >= 0.6 else 'D' if ratio >= 0.5 else 'E' -%}
+{%- set sqale_note = 'B' if ratio > 1.1 else 'A' if ratio >= 1.0 else 'B' if ratio >= 0.9 else 'C' if ratio >= 0.8 else 'D' if ratio >= 0.7 else 'E' -%}
 {%- set sqale_color = 'ok' if sqale_note == 'A' else 'info' if sqale_note == 'B' else 'warn' if sqale_note == 'C' else 'err' -%}
 {%- set sqale_bg = sqale_color ~ '-bg' -%}
+{%- set score_date_val = r.score_global_date -%}
+{%- set score_date_note = 'A' if score_date_val >= 0.9 else 'B' if score_date_val >= 0.75 else 'C' if score_date_val >= 0.5 else 'D' if score_date_val >= 0.25 else 'E' -%}
+{%- set score_date_color = 'ok' if score_date_note == 'A' else 'info' if score_date_note == 'B' else 'warn' if score_date_note == 'C' else 'err' -%}
+{%- set score_proj_val = r.score_global_project -%}
+{%- set score_proj_note = 'A' if score_proj_val >= 0.9 else 'B' if score_proj_val >= 0.75 else 'C' if score_proj_val >= 0.5 else 'D' if score_proj_val >= 0.25 else 'E' -%}
+{%- set score_proj_color = 'ok' if score_proj_note == 'A' else 'info' if score_proj_note == 'B' else 'warn' if score_proj_note == 'C' else 'err' -%}
 <div class="grid grid-cols-4 gap-3 mb-3">
-  {# ── CARRÉ NOTE QUALITÉ ── #}
-  <div class="topbox">
-    <div class="topbox-title">Note Qualité Projet</div>
-    <div class="topbox-value text-{{sqale_color}}" style="font-size:52px;line-height:1.1">{{sqale_note}}</div>
+  {# ── CARRÉ MÉTÉO PROJET ── #}
+  <div class="topbox bg-{{sqale_bg}}">
+    <div class="topbox-title">Météo Projet</div>
+    <div class="topbox-value text-{{sqale_color}}" style="font-size:52px;line-height:1.1">
+      <span>{{r.overall_weather.value}}</span>
+      <span style="margin-left:8px;">{{sqale_note}}</span>
+    </div>
     <div class="topbox-bottom">
-      <div class="topbox-subcard bg-{{sqale_bg}} mt-3">
+      <div class="topbox-subcard bg-white mt-3">
         <div class="topbox-sub">{{(ratio*100)|round(0)|int}}&nbsp;%</div>
       </div>
-      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Note l'efficacité du projet à date.<br><b>Formule&nbsp;:</b> Avancement Planifié / Temps Écoulé</div>
+      <div class="topbox-label mt-1.5 text-left" style="font-size:10px;line-height:1.4">
+        <div><b>Quoi ?</b> Note l'efficacité (A&nbsp;=&nbsp;en avance, E&nbsp;=&nbsp;critique).</div>
+        <div class="mt-1"><b>Calcul :</b> Avancement Planifié / Temps Écoulé</div>
+      </div>
+    </div>
+  </div>
+  {# ── CARRÉ AVANCEMENT PLANIFIÉ (À DATE) ── #}
+  <div class="topbox bg-info-bg">
+    <div class="topbox-title">Avancement Planifié (à date)</div>
+    <div class="topbox-value text-{{score_date_color}}">
+      <span style="font-size:52px;line-height:1.1">{{score_date_note}}</span>
+      <span style="font-size:28px;margin-left:4px;">{{(score_date_val*100)|round(0)|int}}%</span>
+    </div>
+    <div class="topbox-bottom">
+      <div class="topbox-subcard bg-white mt-3">
+          <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">pts effectifs</span></div>
+        </div>
+      <div class="topbox-label mt-1.5 text-left" style="font-size:10px;line-height:1.4">
+        <div><b>Quoi ?</b> L'avancement sur le périmètre prévu jusqu'à ce sprint.</div>
+        <div class="mt-1"><b>Calcul :</b> Pts Effectifs / Pts Planifiés</div>
+      </div>
     </div>
   </div>
   {# ── CARRÉ TEMPS ── #}
-  <div class="topbox">
+  <div class="topbox bg-muted-bg">
     <div class="topbox-title">Temps Écoulé</div>
     <div class="topbox-value {%if r.time_progress<=0.5%}text-ok{%elif r.time_progress<=0.75%}text-warn{%else%}text-err{%endif%}">{{(r.time_progress*100)|round(0)|int}}&nbsp;%</div>
     <div class="mt-2">{{ tbar(r.time_progress, 200, 12) }}</div>
     <div class="topbox-bottom">
-       <div class="topbox-subcard bg-muted-bg mt-3">
+       <div class="topbox-subcard bg-white mt-3">
           <div class="topbox-sub">{{r.business_days_remaining}} <span class="topbox-label">jours restants</span></div>
         </div>
-      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> Le % de jours ouvrés consommés.<br><b>Formule&nbsp;:</b> Jours Écoulés / Jours Totaux</div>
-    </div>
-  </div>
-  {# ── CARRÉ AVANCEMENT PLANIFIÉ (À DATE) ── #}
-  <div class="topbox">
-    <div class="topbox-title">Avancement Planifié (à date)</div>
-    <div class="topbox-value {%if r.score_global_date>=0.5%}text-ok{%elif r.score_global_date>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_date*100)|round(0)|int}}&nbsp;% {{ delta("score_date") }}</div>
-    <div class="mt-2">{{ pbar(r.score_global_date, 200, 12, 0) }}</div>
-    <div class="topbox-bottom">
-      <div class="topbox-subcard bg-ok-bg mt-3">
-          <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">pts effectifs</span></div>
-        </div>
-      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur le périmètre prévu jusqu'à ce sprint.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Planifiés</div>
+      <div class="topbox-label mt-1.5 text-left" style="font-size:10px;line-height:1.4">
+        <div><b>Quoi ?</b> Le % de jours ouvrés consommés.</div>
+        <div class="mt-1"><b>Calcul :</b> Jours Écoulés / Jours Totaux</div>
+      </div>
     </div>
   </div>
   {# ── CARRÉ AVANCEMENT GLOBAL (PROJET) ── #}
-  <div class="topbox">
+  <div class="topbox bg-accent-bg">
     <div class="topbox-title">Avancement Global (projet)</div>
-    <div class="topbox-value {%if r.score_global_project>=0.5%}text-ok{%elif r.score_global_project>=0.25%}text-warn{%else%}text-err{%endif%}">{{(r.score_global_project*100)|round(0)|int}}&nbsp;% {{ delta("score_projet") }}</div>
-    <div class="mt-2">{{ pbar(r.score_global_project, 200, 12, 0) }}</div>
+    <div class="topbox-value text-{{score_proj_color}}">
+      <span style="font-size:52px;line-height:1.1">{{score_proj_note}}</span>
+      <span style="font-size:28px;margin-left:4px;">{{(score_proj_val*100)|round(0)|int}}%</span>
+    </div>
     <div class="topbox-bottom">
-      <div class="topbox-subcard bg-ok-bg mt-3">
+      <div class="topbox-subcard bg-white mt-3">
           <div class="topbox-sub">{{r.date_effective_points|round(1)}} <span class="topbox-label">pts effectifs</span></div>
         </div>
-      <div class="topbox-label mt-1.5"><b>Quoi&nbsp;?</b> L'avancement sur la totalité du projet.<br><b>Formule&nbsp;:</b> Pts Effectifs / Pts Totaux Estimés</div>
+      <div class="topbox-label mt-1.5 text-left" style="font-size:10px;line-height:1.4">
+        <div><b>Quoi ?</b> L'avancement sur la totalité du projet.</div>
+        <div class="mt-1"><b>Calcul :</b> Pts Effectifs / Pts Totaux Estimés (+marge)</div>
+      </div>
     </div>
   </div>
 </div>
 <div class="bg-white rounded-lg shadow-sm px-4 py-2.5 mb-3">
   <div class="pedagogy" style="margin:0">
-    <strong>Logique des scores</strong>&nbsp;: L'avancement est calculé sur les <strong>points de complexité</strong> des livrables (stories), pas sur leur nombre. Un livrable "En cours" compte pour 50% de ses points.
-    Cette méthode reflète mieux la réalité qu'un simple ratio de stories terminées ({{(r.overall_completion*100)|round(0)|int}}&nbsp;%).
+    <strong>Logique des scores</strong> : L'avancement est calculé sur les <strong>points de complexité</strong> des livrables (stories), pas sur leur nombre.
+    <ul style="margin:4px 0 0 16px;padding:0;list-style:disc">
+      <li>Livrable livré = 100% • En cours = 50% • Non démarré = 0%</li>
+      <li><strong>Avancement Planifié (à date)</strong> : avancement sur les livrables prévus jusqu'au sprint courant.</li>
+      <li><strong>Avancement Global (projet)</strong> : avancement sur tous les livrables du projet, y compris ceux planifiés pour les sprints futurs.</li>
+    </ul>
   </div>
 </div>
 {%- endmacro -%}
